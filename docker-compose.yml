@@ -1,0 +1,101 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres-perps
+    ports:
+      - '5434:5432'  # Using different port to avoid conflicts with parent project
+    command: ["postgres", "-cshared_preload_libraries=pg_stat_statements"]
+    environment:
+      POSTGRES_USER: graph-node
+      POSTGRES_PASSWORD: let-me-in
+      POSTGRES_DB: graph-node
+      POSTGRES_INITDB_ARGS: "--locale=C --encoding=UTF8"
+    volumes:
+      - postgres-data-perps:/var/lib/postgresql/data
+      - ./init-graph-db.sql:/docker-entrypoint-initdb.d/init-graph-db.sql
+    networks:
+      - graph-network-perps
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "graph-node"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  ipfs:
+    image: ipfs/kubo:v0.17.0
+    container_name: ipfs-perps
+    ports:
+      - '5002:5001'  # Using different port to avoid conflicts with parent project
+    networks:
+      - graph-network-perps
+    healthcheck:
+      test: ["CMD", "ipfs", "id"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  graph-node:
+    image: graphprotocol/graph-node:v0.38.0
+    container_name: graph-node-perps
+    platform: linux/amd64
+    ports:
+      - '8100:8000'  # HTTP queries
+      - '8101:8001'  # WebSocket
+      - '8102:8020'  # Admin/deploy
+      - '8103:8030'  # Indexing status
+      - '8104:8040'  # Metrics
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ipfs:
+        condition: service_healthy
+    environment:
+      postgres_host: postgres
+      postgres_user: graph-node
+      postgres_pass: let-me-in
+      postgres_db: graph-node
+      ipfs: 'ipfs:5001'
+      ethereum: 'coti:https://mainnet-archivenode-01.coti.io/rpc'
+      GRAPH_LOG: info
+      RUST_LOG: info,hyper=info,reqwest=info,ethabi=info,graph_node=info,ethereum_adapter=info,graph_ethereum=info
+      RUST_BACKTRACE: full
+      GRAPH_ETHEREUM_GENESIS_BLOCK_NUMBER: 185858
+      EXPERIMENTAL_SUBGRAPH_VERSION_SWITCHING_MODE: synced
+      ETHEREUM_REORG_THRESHOLD: 100
+      ETHEREUM_ANCESTOR_COUNT: 500
+      ETHEREUM_POLLING_INTERVAL: 1500
+      GRAPH_ETHEREUM_MAX_BLOCK_RANGE_SIZE: 1000
+      GRAPH_ETHEREUM_REQUEST_RETRIES: 10
+      GRAPH_ETHEREUM_BLOCK_INGESTOR_MAX_CONCURRENT_JSON_RPC_REQUESTS: 10
+    networks:
+      - graph-network-perps
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  perps-deployer:
+    build:
+      context: .
+      dockerfile: Dockerfile.new
+    container_name: perps-deployer
+    environment:
+      GRAPH_NODE_URL: "http://graph-node:8020/"
+      IPFS_URL: "http://ipfs:5001"
+      SUBGRAPH_NAME: "coti-perps-analytics"
+      VERSION_LABEL: "v0.0.1"
+      KEEP_CONTAINER_ALIVE: "false"
+    depends_on:
+      graph-node:
+        condition: service_started
+      ipfs:
+        condition: service_healthy
+    networks:
+      - graph-network-perps
+
+networks:
+  graph-network-perps:
+    driver: bridge
+
+volumes:
+  postgres-data-perps:

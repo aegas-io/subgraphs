@@ -140,6 +140,9 @@ SOLVERS.set("0xecbd0788bb5a72f9dfdac1ffeaaf9b7c2b26e456", "Rasa")
 SOLVERS.set("0x78E76Ac7fEc050cA785c19fFADDF57137b890543", "Orbs")
 SOLVERS.set("0xdB91D232E93969130272De309d3d914547604426", "Orbs")
 SOLVERS.set("0x7D387771f6E23f353a4afCE21af521875C0825D0", "Orbs")
+//coti
+SOLVERS.set("0x9fa4923601b951d22bf72311b69251f196c9d69d", "PerpsHub")
+SOLVERS.set("0x61109a6eb070a860b1da2a38f93ca2b884b54f90", "AgentSolver")
 
 export const AFFILIATES = new Map<string, string>()
 AFFILIATES.set(ZERO_ADDRESS, "Unknown")
@@ -206,6 +209,8 @@ AFFILIATES.set("0x083267d20dbe6c2b0a83bd0e601dc2299ed99015", "IntentX")
 AFFILIATES.set("0xd6ee1fd75d11989e57b57aa6fd75f558fbf02a5e", "Core")
 // plasma
 AFFILIATES.set("0x78B1b8134A4236e69aE3728691e90B31f02C3001", "Lonex")
+// coti
+AFFILIATES.set("0xbf318724218ced9a3ff7cfc642c71a0ca1952b0f", "Privex")
 
 export const LIQUIDATORS = [
 	// mantle
