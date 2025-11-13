@@ -159,6 +159,7 @@ SOLVERS.set("0x6b44c878f869cf742a6d4dd60180a19c3b09716e", "Orbs")
 // iota
 SOLVERS.set("0x10b682bf5b380c900bf4507c07e7365873a2293c", "Rasa")
 // coti
+SOLVERS.set("0x9fa4923601b951d22bf72311b69251f196c9d69d", "PerpsHub")
 SOLVERS.set("0x61109a6eb070a860b1da2a38f93ca2b884b54f90", "Privex")
 SOLVERS.set("0xbc6823bf53fca3ed2b22b2ba9ead339946031334", "Privex")
 // hyperevm
