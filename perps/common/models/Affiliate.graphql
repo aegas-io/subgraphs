@@ -1,0 +1,20 @@
+type Affiliate @entity(immutable: false) {
+	id: ID!
+	address: Bytes!
+	name: String!
+	brandColor: String
+	admin: Bytes!
+	pendingAdmin: Bytes
+	feeDistributor: Bytes
+	status: String!
+	symmioShare: BigInt
+	expressRate: BigInt
+	virtualProvider: Bytes
+	accountManager: Bytes
+	stakeholdersUpdatePending: Boolean!
+	source: Bytes!
+	timestamp: BigInt!
+	updateTimestamp: BigInt!
+	subAccounts: [SubAccount!]! @derivedFrom(field: "affiliate")
+	feeClaims: [FeeClaim!]! @derivedFrom(field: "affiliate")
+}

@@ -9,7 +9,8 @@ export class SendQuoteHandlerWithAccount<T> extends SendQuoteHandler<T> {
 	handleAccount(_event: ethereum.Event, version: Version): void {
 		// @ts-ignore
 		const event = changetype<T>(_event)
-		let account = Account.load(event.params.partyA.toHexString())!
+		let account = Account.load(event.params.partyA.toHexString())
+		if (!account) return
 		if (account.type == accountTypes.get(AccountType.UNKNOWN)) {
 			let userAddress = getAccountOwner(event.address, Address.fromBytes(account.account))
 			if (userAddress) {
@@ -24,6 +25,7 @@ export class SendQuoteHandlerWithAccount<T> extends SendQuoteHandler<T> {
 					accountName,
 					true,
 				)
+				account.source = event.address
 			}
 		}
 		account.quotesCount = account.quotesCount.plus(BigInt.fromString("1"))

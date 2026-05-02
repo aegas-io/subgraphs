@@ -7,6 +7,7 @@ import { getConfiguration } from "../../utils/builders"
 import { updateHistories, UpdateHistoriesParams } from "../../utils/historyHelpers"
 import { BalanceChangeType, balanceChangeTypes } from "../../utils/constants"
 import { updateActivityTimestamps } from "../../utils/activityHelpers"
+import { updatePartyALatestBalance } from "../../utils/latestAccountBalance"
 
 export class AllocatePartyAHandler<T> extends CommonAllocatePartyAHandler<T> {
 	handle(_event: ethereum.Event, version: Version): void {
@@ -16,10 +17,11 @@ export class AllocatePartyAHandler<T> extends CommonAllocatePartyAHandler<T> {
 		super.handleQuote(_event, version)
 		super.handleSymbol(_event, version)
 		super.handleAccount(_event, version)
-		let account = Account.load(event.params.user.toHexString())!
+		let account = Account.load(event.params.user.toHexString())
+		if (!account) return
 		updateActivityTimestamps(account, event.block.timestamp, event.address)
 		if (version < Version.v_0_8_3) {
-			let allocate = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toHexString())
+			let allocate = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
 			allocate.source = event.address
 			allocate.type = balanceChangeTypes.get(BalanceChangeType.ALLOCATE)
 			allocate.timestamp = event.block.timestamp
@@ -31,5 +33,6 @@ export class AllocatePartyAHandler<T> extends CommonAllocatePartyAHandler<T> {
 			allocate.save()
 		}
 		updateHistories(new UpdateHistoriesParams(version, account, null, event).allocate(event.params.amount))
+		updatePartyALatestBalance(_event, version, event.params.user)
 	}
 }

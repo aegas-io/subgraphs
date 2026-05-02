@@ -14,7 +14,8 @@ export class RegisterAffiliateHandler<T> {
 		entity.transactionIndex = event.transaction.index
 		entity.logIndex = event.logIndex
 		entity.blockHash = event.block.hash
-		entity.affilate = event.params.affilate
+		entity.affiliate = _event.parameters[0].value.toAddress()
+		entity.affilate = _event.parameters[0].value.toAddress()
 
 		entity.blockTimestamp = event.block.timestamp
 		entity.blockNumber = event.block.number

@@ -4,6 +4,7 @@ import { ethereum } from "@graphprotocol/graph-ts"
 import { Version } from "../../../common/BaseHandler"
 
 import { updateActivityTimestamps } from "../../utils/activityHelpers"
+import { createQuoteEvent } from "../../utils/quoteEvent"
 
 export class RequestToCancelCloseRequestHandler<T> extends CommonRequestToCancelCloseRequestHandler<T> {
 	handle(_event: ethereum.Event, version: Version): void {
@@ -14,7 +15,10 @@ export class RequestToCancelCloseRequestHandler<T> extends CommonRequestToCancel
 		super.handleSymbol(_event, version)
 		super.handleAccount(_event, version)
 
-		let account = Account.load(event.params.partyA.toHexString())!
+		let account = Account.load(event.params.partyA.toHexString())
+		if (!account) return
 		updateActivityTimestamps(account, event.block.timestamp, event.address)
+
+		createQuoteEvent(_event, event.params.quoteId, "REQUEST_TO_CANCEL_CLOSE", null)
 	}
 }

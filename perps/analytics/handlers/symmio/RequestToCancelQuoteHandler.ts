@@ -4,6 +4,8 @@ import { ethereum } from "@graphprotocol/graph-ts"
 import { Version } from "../../../common/BaseHandler"
 
 import { updateActivityTimestamps } from "../../utils/activityHelpers"
+import { createQuoteEvent } from "../../utils/quoteEvent"
+import { updatePartyALatestBalance } from "../../utils/latestAccountBalance"
 
 export class RequestToCancelQuoteHandler<T> extends CommonRequestToCancelQuoteHandler<T> {
 	handle(_event: ethereum.Event, version: Version): void {
@@ -14,7 +16,12 @@ export class RequestToCancelQuoteHandler<T> extends CommonRequestToCancelQuoteHa
 		super.handleSymbol(_event, version)
 		super.handleAccount(_event, version)
 
-		let account = Account.load(event.params.partyA.toHexString())!
+		let account = Account.load(event.params.partyA.toHexString())
+		if (!account) return
 		updateActivityTimestamps(account, event.block.timestamp, event.address)
+
+		createQuoteEvent(_event, event.params.quoteId, "REQUEST_TO_CANCEL_QUOTE", null)
+
+		updatePartyALatestBalance(_event, version, event.params.partyA)
 	}
 }

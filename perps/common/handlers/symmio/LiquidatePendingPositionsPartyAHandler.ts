@@ -5,6 +5,7 @@ import { Quote } from "../../../../generated/schema"
 import { QuoteStatus } from "../../../analytics/utils/constants"
 import { setEventTimestampAndTransactionHashAndAction } from "../../utils/quote"
 import { LiquidatePendingPositionsPartyA as LiquidatePendingPositionsPartyA_0_8_4 } from "../../../../generated/symmio_0_8_4/symmio_0_8_4"
+import { LiquidatePendingPositionsPartyA as LiquidatePendingPositionsPartyA_0_8_5 } from "../../../../generated/symmio_0_8_5/symmio_0_8_5"
 import { LiquidatePendingPositionsPartyA as LiquidatePendingPositionsPartyA_0_8_3 } from "../../../../generated/symmio_0_8_3/symmio_0_8_3"
 
 export class LiquidatePendingPositionsPartyAHandler<T> extends BaseHandler {
@@ -14,6 +15,12 @@ export class LiquidatePendingPositionsPartyAHandler<T> extends BaseHandler {
 		const event = changetype<T>(_event)
 		let quoteIds: Array<BigInt>
 		switch (version) {
+			case Version.v_0_8_5: {
+				// @ts-ignore
+				const event = changetype<LiquidatePendingPositionsPartyA_0_8_5>(_event)
+				quoteIds = event.params.quoteIds
+				break
+			}
 			case Version.v_0_8_4: {
 				// @ts-ignore
 				const event = changetype<LiquidatePendingPositionsPartyA_0_8_4>(_event)
@@ -27,14 +34,25 @@ export class LiquidatePendingPositionsPartyAHandler<T> extends BaseHandler {
 				break
 			}
 			default: {
+				// v0.8.1/v0.8.2 emit LiquidatePendingPositionsPartyA without quoteIds or liquidationId
+				// on the event payload. The contract clears partyAPendingQuotes before emission,
+				// so there is no on-chain way to recover the set of affected quoteIds here.
+				// v0.8.0 does not emit this event. Leave quote state alone.
 				quoteIds = []
 				break
 			}
 		}
 		for (let index = 0; index < quoteIds.length; index++) {
-			let quote = Quote.load(quoteIds[index].toString() + "-" + event.address.toHexString())!
+			let quote = Quote.load(quoteIds[index].toString() + "-" + event.address.toHexString())
+			if (!quote) continue
 			quote.quoteStatus = QuoteStatus.LIQUIDATED_PENDING
 			switch (version) {
+				case Version.v_0_8_5: {
+					// @ts-ignore
+					let e = changetype<LiquidatePendingPositionsPartyA_0_8_5>(event)
+					quote.liquidationId = e.params.liquidationId
+					break
+				}
 				case Version.v_0_8_4: {
 					// @ts-ignore
 					let e = changetype<LiquidatePendingPositionsPartyA_0_8_4>(event)

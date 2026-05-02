@@ -6,7 +6,7 @@ type UserActivity @entity(immutable: false) {
 	updateTimestamp: BigInt
 }
 
-type BalanceChange @entity(immutable: false) {
+type BalanceChange @entity(immutable: true) {
 	id: ID!
 	source: Bytes!
 	type: String!
@@ -17,44 +17,20 @@ type BalanceChange @entity(immutable: false) {
 	timestamp: BigInt!
 	blockNumber: BigInt!
 	transaction: Bytes!
+	sender: Bytes
+	senderRef: Account
 }
 
-type CvaLf @entity(immutable: false) {
+type QuoteEvent @entity(immutable: true) {
 	id: ID!
 	source: Bytes!
+	quoteId: BigInt!
+	quote: Quote!
 	type: String!
-	account: Bytes!
-	sideAccount: Bytes
-	amount: BigInt!
+	metadata: String
 	timestamp: BigInt!
 	blockNumber: BigInt!
 	transaction: Bytes!
-}
-
-type TradeHistory @entity(immutable: false) {
-	id: ID!
-	account: Bytes!
-	volume: BigInt!
-	timestamp: BigInt!
-	updateTimestamp: BigInt!
-	blockNumber: BigInt!
-	transaction: Bytes!
-	quoteStatus: Int!
-	quote: BigInt!
-}
-
-type CloseHistory @entity(immutable: false) {
-	id: ID!
-	source: Bytes!
-	account: Bytes!
-	amount: BigInt!
-	closePrice: BigInt!
-	volume: BigInt!
-	timestamp: BigInt!
-	blockNumber: BigInt!
-	transaction: Bytes!
-	quoteStatus: Int!
-	quote: BigInt!
 }
 
 type DailyHistory @entity(immutable: false) {
@@ -74,6 +50,8 @@ type DailyHistory @entity(immutable: false) {
 	newUsers: BigInt!
 	newAccounts: BigInt!
 	platformFee: BigInt!
+	openFee: BigInt!
+	closeFee: BigInt!
 	symmioShare: BigInt!
 	openInterest: BigInt!
 	fundingPaid: BigInt!
@@ -111,6 +89,8 @@ type SolverDailyHistory @entity(immutable: false) {
 	solver: Bytes!
 	accountSource: Bytes
 	platformFee: BigInt!
+	openFee: BigInt!
+	closeFee: BigInt!
 	updateTimestamp: BigInt!
 	timestamp: BigInt!
 }
@@ -130,6 +110,8 @@ type SolverOnlyDailyHistory @entity(immutable: false) {
 	fundingReceived: BigInt!
 	solver: Bytes!
 	platformFee: BigInt!
+	openFee: BigInt!
+	closeFee: BigInt!
 	updateTimestamp: BigInt!
 	timestamp: BigInt!
 }
@@ -152,17 +134,6 @@ type MonthlyHistory @entity(immutable: false) {
 	timestamp: BigInt!
 }
 
-type QuotePriceUpdate @entity(immutable: false) {
-	id: ID!
-	source: Bytes!
-	quoteId: BigInt!
-	openQuantity: BigInt!
-	prevPrice: BigInt!
-	newPrice: BigInt!
-    type: String!
-	timestamp: BigInt!
-}
-
 type TotalHistory @entity(immutable: false) {
 	id: ID!
 	source: Bytes!
@@ -178,6 +149,8 @@ type TotalHistory @entity(immutable: false) {
 	users: BigInt!
 	accounts: BigInt!
 	platformFee: BigInt!
+	openFee: BigInt!
+	closeFee: BigInt!
 	fundingPaid: BigInt!
 	fundingReceived: BigInt!
 	accountSource: Bytes
@@ -207,7 +180,9 @@ type TotalSolverHistory @entity(immutable: false) {
 type DailyUserHistory @entity(immutable: false) {
 	id: ID!
 	day: BigInt!
+	user: Bytes!
 	account: Bytes!
+	accountRef: Account
 	quotesCount: BigInt!
 	openTradeVolume: BigInt!
 	closeTradeVolume: BigInt!
@@ -219,6 +194,8 @@ type DailyUserHistory @entity(immutable: false) {
 	accAllocate: BigInt!
 	accDeallocate: BigInt!
 	platformFeePaid: BigInt!
+	openFeePaid: BigInt!
+	closeFeePaid: BigInt!
 	fundingPaid: BigInt!
 	fundingReceived: BigInt!
 	loss: BigInt!
@@ -233,6 +210,7 @@ type DailyUserHistory @entity(immutable: false) {
 type TotalUserHistory @entity(immutable: false) {
 	id: ID!
 	account: Bytes!
+	accountRef: Account
 	quotesCount: BigInt!
 	openTradeVolume: BigInt!
 	closeTradeVolume: BigInt!
@@ -242,6 +220,8 @@ type TotalUserHistory @entity(immutable: false) {
 	allocate: BigInt!
 	deallocate: BigInt!
 	platformFeePaid: BigInt!
+	openFeePaid: BigInt!
+	closeFeePaid: BigInt!
 	fundingPaid: BigInt!
 	fundingReceived: BigInt!
 	loss: BigInt!
@@ -253,6 +233,7 @@ type TotalUserHistory @entity(immutable: false) {
 
 type SymbolTradeHistory @entity(immutable: false) {
 	id: ID!
+	source: Bytes!
 	symbolId: BigInt!
 	timestamp: BigInt!
 	updateTimestamp: BigInt!
@@ -261,7 +242,7 @@ type SymbolTradeHistory @entity(immutable: false) {
 }
 
 type DailySymbolTradesHistory @entity(immutable: false) {
-	id: ID! # account_source + account + symbolId
+	id: ID! # date + source + account_source + account + symbolId
 	source: Bytes!
 	day: BigInt!
 	updateTimestamp: BigInt!
@@ -272,10 +253,14 @@ type DailySymbolTradesHistory @entity(immutable: false) {
 	fundingReceived: BigInt!
 	fundingPaid: BigInt!
 	platformFeePaid: BigInt!
+	openFeePaid: BigInt!
+	closeFeePaid: BigInt!
+	volume: BigInt!
 }
 
 type TotalSymbolTradesHistory @entity(immutable: false) {
-	id: ID! # account_source + account + symbolId
+	id: ID! # source + account_source + account + symbolId
+	source: Bytes!
 	updateTimestamp: BigInt!
 	account: Bytes!
 	accountSource: Bytes
@@ -284,6 +269,9 @@ type TotalSymbolTradesHistory @entity(immutable: false) {
 	fundingReceived: BigInt!
 	fundingPaid: BigInt!
 	platformFeePaid: BigInt!
+	openFeePaid: BigInt!
+	closeFeePaid: BigInt!
+	volume: BigInt!
 }
 
 type OpenInterest @entity(immutable: false) {
@@ -314,4 +302,127 @@ type OpenInterestSettleDay @entity(immutable: false) {
 	id: ID!
 	dayNumber: BigInt!
 	timestamp: BigInt!
+}
+
+type FundingRateSnapshot @entity(immutable: true) {
+	id: ID!
+	source: Bytes!
+	symbolId: BigInt!
+	partyB: Bytes!
+	longFee: BigInt
+	shortFee: BigInt
+	marketPrice: BigInt!
+	eventType: String!
+	timestamp: BigInt!
+	blockNumber: BigInt!
+	transaction: Bytes!
+}
+
+type FundingFeeState @entity(immutable: false) {
+	id: ID!
+	source: Bytes!
+	symbolId: BigInt!
+	symbolName: String!
+	partyB: Bytes!
+	currentLongRate: BigInt
+	currentShortRate: BigInt
+	accumulatedLongRate: BigInt
+	accumulatedShortRate: BigInt
+	epochDuration: BigInt
+	lastUpdatedEpoch: BigInt
+	startEpoch: BigInt
+	startEpochTimestamp: BigInt
+	lastUpdatedTimestamp: BigInt
+	snapshotLongFee: BigInt
+	snapshotShortFee: BigInt
+	lastMarketPrice: BigInt
+	updateTimestamp: BigInt!
+}
+
+type LiquidationDetail @entity(immutable: false) {
+	id: ID!
+	source: Bytes!
+	partyA: Bytes!
+	partyAAccount: Account
+	liquidationId: Bytes!
+	liquidationType: Int!
+	upnl: BigInt!
+	totalUnrealizedLoss: BigInt!
+	deficit: BigInt!
+	liquidationFee: BigInt!
+	timestamp: BigInt
+	involvedPartyBCounts: BigInt!
+	partyAAccumulatedUpnl: BigInt!
+	disputed: Boolean!
+	liquidationTimestamp: BigInt!
+	liquidator: Bytes
+	allocatedBalance: BigInt
+	settled: Boolean!
+	fullyLiquidated: Boolean!
+	settledAmounts: [BigInt!]
+	settledPartyBs: [Bytes!]
+	affiliate: Bytes
+	totalPnl: BigInt
+	paidCva: BigInt
+	paidLf: BigInt
+	fullyLiquidatedTimestamp: BigInt
+}
+
+type WithdrawRequest @entity(immutable: false) {
+	id: ID!
+	source: Bytes!
+	requestId: BigInt!
+	user: Bytes!
+	amount: BigInt!
+	speedUp: Boolean!
+	cooldownEndTime: BigInt!
+	status: String!
+	timestamp: BigInt!
+	updateTimestamp: BigInt!
+	blockNumber: BigInt!
+	transaction: Bytes!
+}
+
+type LatestAccountBalance @entity(immutable: false) {
+	id: ID!
+	source: Bytes!
+	account: Bytes!
+	counterParty: Bytes
+	accountType: String!
+	allocatedBalance: BigInt!
+	lockedCva: BigInt!
+	lockedLf: BigInt!
+	lockedPartyAmm: BigInt!
+	lockedPartyBmm: BigInt!
+	pendingLockedCva: BigInt!
+	pendingLockedLf: BigInt!
+	pendingLockedPartyAmm: BigInt!
+	pendingLockedPartyBmm: BigInt!
+	timestamp: BigInt!
+	blockNumber: BigInt!
+	transaction: Bytes!
+	accountRef: Account
+	counterPartyRef: Account
+}
+
+type AggregatedPosition @entity(immutable: false) {
+	id: ID!
+	source: Bytes!
+	partyA: Bytes!
+	partyB: Bytes!
+	symbolId: BigInt!
+	symbolName: String!
+	positionType: Int!
+	aggregatedAmount: BigInt!
+	aggregatedNotional: BigInt!
+	weightedPaidFunding: BigInt!
+	openPositionsCount: Int!
+	isActive: Boolean!
+	closedTimestamp: BigInt
+	closedBlockNumber: BigInt
+	closedTransaction: Bytes
+	timestamp: BigInt!
+	blockNumber: BigInt!
+	transaction: Bytes!
+	partyAAccount: Account
 }

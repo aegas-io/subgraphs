@@ -16,20 +16,26 @@
 		"Deposit",
 		"Withdraw"
 	],
-	"TradeHistory": [
+	"QuoteEvent": [
+		"SendQuote",
+		"LockQuote",
+		"UnlockQuote",
 		"OpenPosition",
+		"RequestToClosePosition",
+		"FillCloseRequest",
+		"ForceClosePosition",
+		"EmergencyClosePosition",
+		"ExpireQuote",
+		"ForceCancelQuote",
+		"ForceCancelCloseRequest",
+		"RequestToCancelCloseRequest",
+		"RequestToCancelQuote",
+		"AcceptCancelRequest",
+		"AcceptCancelCloseRequest",
+		"ChargeFundingRate",
 		"LiquidatePositionsPartyA",
 		"LiquidatePositionsPartyB",
-		"FillCloseRequest",
-		"EmergencyClosePosition",
-		"ForceClosePosition"
-	],
-	"CloseHistory": [
-		"LiquidatePositionsPartyA",
-		"LiquidatePositionsPartyB",
-		"FillCloseRequest",
-		"EmergencyClosePosition",
-		"ForceClosePosition"
+		"LiquidatePendingPositionsPartyA"
 	],
 	"DailyHistory": [
 		"OpenPosition",
@@ -135,21 +141,6 @@
 		"FillCloseRequest",
 		"EmergencyClosePosition"
 	],
-	"PriceCheck": [
-		"OpenPosition",
-		"FillCloseRequest",
-		"EmergencyClosePosition",
-		"ForceClosePosition"
-	],
-	"PartyALiquidation": [
-		"SetSymbolsPrices"
-	],
-	"PartyBLiquidation": [
-		"LiquidatePartyB"
-	],
-	"PartyALiquidationDisputed": [
-		"LiquidationDisputed"
-	],
 	"Configuration": [
 		"SetCollateral"
 	],
@@ -160,5 +151,42 @@
 	"Account": [
 		"RequestToCancelCloseRequest",
 		"RequestToCancelQuote"
+	],
+	"LiquidationDetail": [
+		"SetSymbolsPrices",
+		"LiquidatePartyA",
+		"LiquidationDisputed",
+		"SettlePartyALiquidation",
+		"FullyLiquidatedPartyA"
+	],
+	"LatestAccountBalance": [
+		"AllocatePartyA",
+		"DeallocatePartyA",
+		"AllocateForPartyB",
+		"DeallocateForPartyB",
+		"SendQuote",
+		"OpenPosition",
+		"FillCloseRequest",
+		"EmergencyClosePosition",
+		"ForceClosePosition",
+		"AcceptCancelRequest",
+		"ExpireQuote",
+		"ForceCancelQuote",
+		"ChargeFundingRate",
+		"LiquidatePartyA",
+		"LiquidatePartyB",
+		"LiquidatePositionsPartyA",
+		"LiquidatePositionsPartyB",
+		"LiquidatePendingPositionsPartyA",
+		"RequestToCancelQuote"
+	],
+	"AggregatedPosition": [
+		"OpenPosition",
+		"FillCloseRequest",
+		"ForceClosePosition",
+		"EmergencyClosePosition",
+		"LiquidatePositionsPartyA",
+		"LiquidatePositionsPartyB",
+		"ChargeFundingRate"
 	]
 }

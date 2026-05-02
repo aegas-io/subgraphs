@@ -13,10 +13,16 @@ export class RegisterPartyBHandler<T> extends BaseHandler {
 		account.source = event.address
 		account.save()
 
-		let player = new SymmioEntity(event.params.partyB.toHexString())
-		player.address = event.params.partyB
+		let id = event.params.partyB.toHexString()
+		let player = SymmioEntity.load(id)
+		if (!player) {
+			player = new SymmioEntity(id)
+			player.address = event.params.partyB
+			if (SOLVERS.has(id)) {
+				player.name = SOLVERS.get(id)
+			}
+		}
 		player.type = "Solver"
-		player.name = SOLVERS.get(event.params.partyB.toHexString())
 		player.save()
 	}
 }

@@ -17,5 +17,11 @@ UniConfig.json
 subgraph.yaml
 /schema.graphql
 perps/analytics/currentConfig.json
+.fleet_state.json
 
 .envrc
+.venv/
+.python-version
+uv.lock
+pyproject.toml
+__pycache__/
