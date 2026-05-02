@@ -1,15 +1,8 @@
-import {
-	FillCloseRequestHandler as CommonFillCloseRequestHandler
-} from "../../../common/handlers/symmio/FillCloseRequestHandler"
-import {ethereum} from "@graphprotocol/graph-ts";
-import {Version} from "../../../common/BaseHandler";
-
-import {FillCloseRequest as FillCloseRequest_0_8_4} from "../../../../generated/symmio_0_8_4/symmio_0_8_4";
-import {FillCloseRequest as FillCloseRequest_0_8_3} from "../../../../generated/symmio_0_8_3/symmio_0_8_3";
-import {FillCloseRequest as FillCloseRequest_0_8_2} from "../../../../generated/symmio_0_8_2/symmio_0_8_2";
-import {FillCloseRequest as FillCloseRequest_0_8_1} from "../../../../generated/symmio_0_8_1/symmio_0_8_1";
-import {FillCloseRequest as FillCloseRequest_0_8_0} from "../../../../generated/symmio_0_8_0/symmio_0_8_0";
-import {handleClose} from "../commonHandlers/close";
+import { FillCloseRequestHandler as CommonFillCloseRequestHandler } from "../../../common/handlers/symmio/FillCloseRequestHandler"
+import { ethereum } from "@graphprotocol/graph-ts"
+import { Version } from "../../../common/BaseHandler"
+import { handleClose } from "../commonHandlers/close"
+import { updatePartyALatestBalance, updatePartyBLatestBalance } from "../../utils/latestAccountBalance"
 
 export class FillCloseRequestHandler<T> extends CommonFillCloseRequestHandler<T> {
 	handle(_event: ethereum.Event, version: Version): void {
@@ -19,28 +12,8 @@ export class FillCloseRequestHandler<T> extends CommonFillCloseRequestHandler<T>
 		super.handleQuote(_event, version)
 		super.handleSymbol(_event, version)
 		super.handleAccount(_event, version)
-
-		switch (version) {
-			case Version.v_0_8_4: {
-				handleClose<FillCloseRequest_0_8_4>(event, "FillCloseRequest", version)
-				break
-			}
-			case Version.v_0_8_3: {
-				handleClose<FillCloseRequest_0_8_3>(event, "FillCloseRequest", version)
-				break
-			}
-			case Version.v_0_8_2: {
-				handleClose<FillCloseRequest_0_8_2>(event, "FillCloseRequest", version)
-				break
-			}
-			case Version.v_0_8_1: {
-				handleClose<FillCloseRequest_0_8_1>(event, "FillCloseRequest", version)
-				break
-			}
-			case Version.v_0_8_0: {
-				handleClose<FillCloseRequest_0_8_0>(event, "FillCloseRequest", version)
-				break
-			}
-		}
+		handleClose<T>(_event, "FillCloseRequest", version, "FILL_CLOSE")
+		updatePartyALatestBalance(_event, version, event.params.partyA)
+		updatePartyBLatestBalance(_event, version, event.params.partyB, event.params.partyA)
 	}
 }

@@ -6,7 +6,8 @@ export enum Version {
 	v_0_8_1,
 	v_0_8_2,
 	v_0_8_3,
-	v_0_8_4
+	v_0_8_4,
+	v_0_8_5
 }
 
 export enum MultiAccountVersion {
@@ -63,6 +64,26 @@ export class BaseFeeCollectorHandler {
 	}
 
 	handle(_event: ethereum.Event, version: FeeCollectorVersion): void {
+	}
+
+	handleGlobalCounter(): BigInt {
+		return getGlobalCounterAndInc()
+	}
+}
+
+export enum AccountLayerVersion {
+	v_1,
+}
+
+export class BaseAccountLayerHandler {
+
+	constructor() {
+	}
+
+	handle(_event: ethereum.Event, version: AccountLayerVersion): void {
+	}
+
+	handleAccount(_event: ethereum.Event, version: AccountLayerVersion): void {
 	}
 
 	handleGlobalCounter(): BigInt {

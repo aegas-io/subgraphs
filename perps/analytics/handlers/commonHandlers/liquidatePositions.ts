@@ -1,87 +1,52 @@
 import { ethereum } from "@graphprotocol/graph-ts/chain/ethereum"
 import { Version } from "../../../common/BaseHandler"
-import { BigInt } from "@graphprotocol/graph-ts"
-import { Account, CloseHistory, Quote, TradeHistory } from "../../../../generated/schema"
-import { getQuote as getQuote_0_8_0 } from "../../../common/contract_utils_0_8_0"
-import { getQuote as getQuote_0_8_1 } from "../../../common/contract_utils_0_8_1"
-import { getQuote as getQuote_0_8_2 } from "../../../common/contract_utils_0_8_2"
-import { getQuote as getQuote_0_8_3 } from "../../../common/contract_utils_0_8_3"
-import { getQuote as getQuote_0_8_4 } from "../../../common/contract_utils_0_8_4"
-import { QuoteStatus } from "../../utils/constants"
+import { Address, BigInt } from "@graphprotocol/graph-ts"
+import { Account, Quote } from "../../../../generated/schema"
 import { updateHistories, UpdateHistoriesParams } from "../../utils/historyHelpers"
 import { updateDailyOpenInterest } from "../../utils/openInterestHelpers"
 import { unDecimal } from "../../utils/common"
+import { createQuoteEvent, JSONBuilder } from "../../utils/quoteEvent"
+import { onPositionClose } from "../../utils/aggregatedPosition"
 
-export function handleLiquidatePosition<T>(_event: ethereum.Event, version: Version, qId: BigInt): void {
+export function handleLiquidatePosition<T>(_event: ethereum.Event, version: Version, qId: BigInt, closeType: string): void {
 	// @ts-ignore
 	const event = changetype<T>(_event)
-	const quote = Quote.load(qId.toString() + "-" + event.address.toHexString())!
+	const quote = Quote.load(qId.toString() + "-" + event.address.toHexString())
+	if (!quote) return
 
-	let liquidAmount: BigInt
-	let liquidPrice: BigInt
-	switch (version) {
-		case Version.v_0_8_4: {
-			const chainQuote = getQuote_0_8_4(event.address, qId)
-			if (chainQuote == null) return
-			liquidAmount = quote.quantity!.minus(quote.closedAmount!)
-			liquidPrice = chainQuote.avgClosedPrice.times(quote.quantity!).minus(quote.averageClosedPrice!.times(quote.closedAmount!)).div(liquidAmount)
-			break
-		}
-		case Version.v_0_8_3: {
-			const chainQuote = getQuote_0_8_3(event.address, qId)
-			if (chainQuote == null) return
-			liquidAmount = quote.quantity!.minus(quote.closedAmount!)
-			liquidPrice = chainQuote.avgClosedPrice.times(quote.quantity!).minus(quote.averageClosedPrice!.times(quote.closedAmount!)).div(liquidAmount)
-			break
-		}
-		case Version.v_0_8_2: {
-			const chainQuote = getQuote_0_8_2(event.address, qId)
-			if (chainQuote == null) return
-			liquidAmount = quote.quantity!.minus(quote.closedAmount!)
-			liquidPrice = chainQuote.avgClosedPrice.times(quote.quantity!).minus(quote.averageClosedPrice!.times(quote.closedAmount!)).div(liquidAmount)
-			break
-		}
-		case Version.v_0_8_1: {
-			const chainQuote = getQuote_0_8_1(event.address, qId)
-			if (chainQuote == null) return
-			liquidAmount = quote.quantity!.minus(quote.closedAmount!)
-			liquidPrice = chainQuote.avgClosedPrice.times(quote.quantity!).minus(quote.averageClosedPrice!.times(quote.closedAmount!)).div(liquidAmount)
-			break
-		}
-		case Version.v_0_8_0: {
-			const chainQuote = getQuote_0_8_0(event.address, qId)
-			if (chainQuote == null) return
-			liquidAmount = quote.quantity!.minus(quote.closedAmount!)
-			liquidPrice = chainQuote.avgClosedPrice.times(quote.quantity!).minus(quote.averageClosedPrice!.times(quote.closedAmount!)).div(liquidAmount)
-			break
-		}
-	}
+	// Use pre-computed values from the common handler (which already updated closedAmount = quantity)
+	if (!quote.liquidateAmount || !quote.liquidatePrice) return
+	let liquidAmount = quote.liquidateAmount!
+	let liquidPrice = quote.liquidatePrice!
 	const additionalVolume = liquidAmount.times(liquidPrice).div(BigInt.fromString("10").pow(18))
 
-	let history = TradeHistory.load(event.params.partyA.toHexString() + "-" + qId.toString())!
-	history.volume = history.volume.plus(additionalVolume)
-	history.quoteStatus = QuoteStatus.LIQUIDATED
-	history.updateTimestamp = event.block.timestamp
-	history.quote = qId
-	history.save()
-
-	let closeHistory = new CloseHistory(
-		event.params.partyA.toHexString() + "-" + qId.toString() + "-" + event.address.toHexString() + "-" + event.block.timestamp.toString(),
+	onPositionClose(
+		_event,
+		version,
+		changetype<Address>(quote.partyA),
+		changetype<Address>(quote.partyB!),
+		quote.symbolId!,
+		quote.positionType,
+		liquidAmount,
+		quote.openedPrice!,
+		quote.accumulatedPaidFunding ? quote.accumulatedPaidFunding! : BigInt.zero(),
+		true,
 	)
-	closeHistory.source = event.address
-	closeHistory.account = event.params.partyA
-	closeHistory.amount = liquidAmount
-	closeHistory.closePrice = liquidPrice
-	closeHistory.volume = additionalVolume
-	closeHistory.timestamp = event.block.timestamp
-	closeHistory.blockNumber = event.block.number
-	closeHistory.transaction = event.transaction.hash
-	closeHistory.quoteStatus = QuoteStatus.LIQUIDATED
-	closeHistory.quote = qId
-	closeHistory.save()
 
-	let account = Account.load(quote.partyA.toHexString())!
-	let solverAccount = Account.load(quote.partyB!.toHexString())!
+	createQuoteEvent(
+		_event,
+		qId,
+		closeType,
+		new JSONBuilder()
+			.add("amount", liquidAmount.toString())
+			.add("closePrice", liquidPrice.toString())
+			.build(),
+	)
+
+	let account = Account.load(quote.partyA.toHexString())
+	if (!account) return
+	let solverAccount = Account.load(quote.partyB!.toHexString())
+	if (!solverAccount) return
 
 	const pnl = unDecimal(
 		(quote.positionType == 0 ? BigInt.fromString("1") : BigInt.fromString("1").neg())

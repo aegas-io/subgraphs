@@ -7,6 +7,7 @@ import { getConfiguration } from "../../utils/builders"
 import { updateHistories, UpdateHistoriesParams } from "../../utils/historyHelpers"
 import { BalanceChangeType, balanceChangeTypes } from "../../utils/constants"
 import { updateActivityTimestamps } from "../../utils/activityHelpers"
+import { updatePartyALatestBalance } from "../../utils/latestAccountBalance"
 
 export class DeallocatePartyAHandler<T> extends CommonDeallocatePartyAHandler<T> {
 	handle(_event: ethereum.Event, version: Version): void {
@@ -21,7 +22,7 @@ export class DeallocatePartyAHandler<T> extends CommonDeallocatePartyAHandler<T>
 		if (account == null) return
 		updateActivityTimestamps(account, event.block.timestamp, event.address)
 		if (version < Version.v_0_8_3) {
-			let deallocate = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toHexString())
+			let deallocate = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
 			deallocate.source = event.address
 			deallocate.type = balanceChangeTypes.get(BalanceChangeType.DEALLOCATE)
 			deallocate.timestamp = event.block.timestamp
@@ -34,5 +35,6 @@ export class DeallocatePartyAHandler<T> extends CommonDeallocatePartyAHandler<T>
 		}
 
 		updateHistories(new UpdateHistoriesParams(version, account, null, event).deallocate(event.params.amount))
+		updatePartyALatestBalance(_event, version, event.params.user)
 	}
 }

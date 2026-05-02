@@ -7,6 +7,7 @@ import { getConfiguration } from "../../utils/builders"
 import { updateHistories, UpdateHistoriesParams } from "../../utils/historyHelpers"
 import { AccountType, createNewAccountIfNotExists } from "../../../common/utils/builders"
 import { updateActivityTimestamps } from "../../utils/activityHelpers"
+import { resolveAccountSourceFromAccountLayer } from "../../../common/utils/account_layer_resolver"
 
 export class WithdrawHandler<T> extends CommonWithdrawHandler<T> {
 	handle(_event: ethereum.Event, version: Version): void {
@@ -17,22 +18,26 @@ export class WithdrawHandler<T> extends CommonWithdrawHandler<T> {
 		super.handleQuote(_event, version)
 		super.handleSymbol(_event, version)
 
-		let account = createNewAccountIfNotExists(event.params.sender, event.params.sender, null, AccountType.UNKNOWN, event.block, event.transaction)
+		let accountSource = resolveAccountSourceFromAccountLayer(event.address, event.params.user)
+		let account = createNewAccountIfNotExists(event.params.user, event.params.user, accountSource, AccountType.UNKNOWN, event.block, event.transaction)
 		account.globalCounter = globalCounter
 		account.source = event.address
 		account.withdraw = account.withdraw.plus(event.params.amount)
 		account.updateTimestamp = event.block.timestamp
 		account.save()
 		updateActivityTimestamps(account, event.block.timestamp, event.address)
-		let withdraw = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toHexString())
+		let withdraw = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
 		withdraw.source = event.address
 		withdraw.type = "WITHDRAW"
 		withdraw.timestamp = event.block.timestamp
 		withdraw.blockNumber = event.block.number
 		withdraw.transaction = event.transaction.hash
 		withdraw.amount = event.params.amount
-		withdraw.account = event.params.sender
+		withdraw.account = event.params.user
 		withdraw.collateral = getConfiguration(event).collateral
+		createNewAccountIfNotExists(event.params.sender, event.params.sender, null, AccountType.UNKNOWN, event.block, event.transaction)
+		withdraw.sender = event.params.sender
+		withdraw.senderRef = event.params.sender.toHexString()
 		withdraw.save()
 		updateHistories(new UpdateHistoriesParams(version, account, null, event).withdraw(event.params.amount))
 	}
