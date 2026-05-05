@@ -57,7 +57,7 @@ COPY . /build/
 # values (the running prod deployment's IPFS hash and a block ~200 behind
 # its head). Leave both empty for a normal (non-grafted) build.
 ARG GRAFT_BASE="QmQFesWs3oHrtgN3ocpXk88arbwvFKYz9hAj1BcugRumTH"
-ARG GRAFT_BLOCK="7059227"
+ARG GRAFT_BLOCK="7059316"
 RUN if [ -n "$GRAFT_BASE" ] && [ -n "$GRAFT_BLOCK" ]; then \
       python3 scripts/manager.py configs/perps/coti.json perps/analytics \
         --graft-base "$GRAFT_BASE" --graft-block "$GRAFT_BLOCK"; \
