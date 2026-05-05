@@ -451,7 +451,7 @@ def get_events_with_signatures(needed_events: Set[str], contract: Contract) -> L
     return events
 
 
-def prepare_module(config: Config, target_module: str):
+def prepare_module(config: Config, target_module: str, graft_base: Optional[str] = None, graft_block: Optional[int] = None):
     target_config = {}
     if os.path.exists(os.path.join(target_module, "subgraph_config.json")):
         with open(os.path.join(target_module, "subgraph_config.json"), "r") as target_config_file:
@@ -596,6 +596,11 @@ def prepare_module(config: Config, target_module: str):
             source_config["name"] += f"_{contract_indexes[(contract.abi, contract.version)]}"
 
         subgraph_config["dataSources"].append(source_config)
+
+    if graft_base is not None and graft_block is not None:
+        subgraph_config["features"] = ["grafting"]
+        subgraph_config["graft"] = {"base": graft_base, "block": graft_block}
+        success(f"Grafting enabled: base={graft_base} block={graft_block}")
 
     yaml_content = json_to_yaml(subgraph_config)
     with open("./subgraph.yaml", "w") as yaml_file:
@@ -808,6 +813,8 @@ def main():
     parser.add_argument("--generate-entities", action="store_true", help="Generate and print entities")  # New option
     parser.add_argument("--create-utils", action="store_true", help="Generate contract_utils files for symmio versions")
     parser.add_argument("--provider", choices=["goldsky", "0xgraph"], default="goldsky", help="Deployment provider (default: goldsky)")
+    parser.add_argument("--graft-base", type=str, help="Deployment ID (Qm...) of base subgraph to graft from")
+    parser.add_argument("--graft-block", type=int, help="Block number at which to graft from the base subgraph")
 
     args = parser.parse_args()
     if not os.path.exists(args.config_file):
@@ -863,7 +870,10 @@ def main():
 
         current_step += 1
         step(current_step, build_steps, "Preparing module...")
-        prepare_module(config, args.module_name)
+        if (args.graft_base is None) != (args.graft_block is None):
+            error("--graft-base and --graft-block must be provided together")
+            sys.exit(1)
+        prepare_module(config, args.module_name, args.graft_base, args.graft_block)
         generate_sync_meta_ts(args.module_name)
         success("Module prepared")
 
