@@ -63,6 +63,9 @@ FROM node:18-slim
 
 WORKDIR /app
 
+# Install curl (used by deploy.sh to pin graft base manifest to IPFS)
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
 # Install graph-cli globally for deployment
 RUN npm install -g @graphprotocol/graph-cli@0.79.2
 
@@ -81,6 +84,9 @@ COPY --from=builder /build/build ./build
 COPY --from=builder /build/generated ./generated
 COPY --from=builder /build/abis ./abis
 COPY --from=builder /build/perps ./perps
+
+# Copy graft base manifest (pinned to IPFS by deploy.sh so grafting can find it)
+COPY bootstrap-graft-base.yaml ./bootstrap-graft-base.yaml
 
 # Copy deployment script
 COPY deploy.sh ./

@@ -14,6 +14,20 @@ sleep 30
 # Verify graph-cli installation
 graph --version
 
+# Pin the graft base manifest to IPFS so future grafted deploys can find it.
+# Idempotent: re-pinning the same content returns the same hash.
+EXPECTED_BASE_HASH="QmQFesWs3oHrtgN3ocpXk88arbwvFKYz9hAj1BcugRumTH"
+if [ -f "./bootstrap-graft-base.yaml" ]; then
+  echo "Pinning graft base manifest to IPFS at ${IPFS_URL}..."
+  PIN_RESULT=$(curl -s -X POST -F "file=@bootstrap-graft-base.yaml" "${IPFS_URL}/api/v0/add?pin=true&cid-version=0&raw-leaves=false")
+  echo "Pin result: $PIN_RESULT"
+  if echo "$PIN_RESULT" | grep -q "$EXPECTED_BASE_HASH"; then
+    echo "Graft base manifest pinned: $EXPECTED_BASE_HASH"
+  else
+    echo "WARNING: pinned hash does not match expected $EXPECTED_BASE_HASH"
+  fi
+fi
+
 # Create the subgraph namespace
 echo "Creating subgraph namespace for ${SUBGRAPH_NAME}..."
 graph create --node ${GRAPH_NODE_URL} ${SUBGRAPH_NAME} || true
