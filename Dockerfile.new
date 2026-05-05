@@ -52,9 +52,18 @@ RUN npm install
 # Copy all project files
 COPY . /build/
 
-# Run manager.py to generate schema, subgraph.yaml, codegen, and build
-# This single command does: prepare_module + graph codegen + graph build
-RUN python3 scripts/manager.py configs/perps/coti.json perps/analytics
+# Run manager.py to generate schema, subgraph.yaml, codegen, and build.
+# To graft on this deploy, set GRAFT_BASE + GRAFT_BLOCK below to non-empty
+# values (the running prod deployment's IPFS hash and a block ~200 behind
+# its head). Leave both empty for a normal (non-grafted) build.
+ARG GRAFT_BASE="QmQFesWs3oHrtgN3ocpXk88arbwvFKYz9hAj1BcugRumTH"
+ARG GRAFT_BLOCK="7059227"
+RUN if [ -n "$GRAFT_BASE" ] && [ -n "$GRAFT_BLOCK" ]; then \
+      python3 scripts/manager.py configs/perps/coti.json perps/analytics \
+        --graft-base "$GRAFT_BASE" --graft-block "$GRAFT_BLOCK"; \
+    else \
+      python3 scripts/manager.py configs/perps/coti.json perps/analytics; \
+    fi
 
 ######################################################################
 # STAGE 2: DEPLOYMENT IMAGE

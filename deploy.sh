@@ -5,7 +5,7 @@ set -e
 GRAPH_NODE_URL=${GRAPH_NODE_URL:-"http://graph-node:8020/"}
 IPFS_URL=${IPFS_URL:-"http://ipfs:5001"}
 SUBGRAPH_NAME=${SUBGRAPH_NAME:-"coti-perps-analytics"}
-VERSION_LABEL=${VERSION_LABEL:-"v0.0.1"}
+VERSION_LABEL=${VERSION_LABEL:-"v0.0.2"}
 
 # Wait for graph-node to be ready
 echo "Waiting for graph-node at ${GRAPH_NODE_URL}..."

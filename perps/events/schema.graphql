@@ -267,7 +267,7 @@ type DeregisterAffiliate @entity(immutable: true) {
 	id: ID!
 	source: Bytes!
 	counterId: BigInt!
-	affiliate: Bytes!
+	affiliate: Bytes
 	affilate: Bytes!
 	blockNumber: BigInt!
 	blockTimestamp: BigInt!
@@ -708,7 +708,7 @@ type RegisterAffiliate @entity(immutable: true) {
 	id: ID!
 	source: Bytes!
 	counterId: BigInt!
-	affiliate: Bytes!
+	affiliate: Bytes
 	affilate: Bytes!
 	blockNumber: BigInt!
 	blockTimestamp: BigInt!
