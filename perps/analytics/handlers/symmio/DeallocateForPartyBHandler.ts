@@ -4,6 +4,7 @@ import { Version } from "../../../common/BaseHandler"
 import { BalanceChange } from "../../../../generated/schema"
 import { BalanceChangeType, balanceChangeTypes } from "../../utils/constants"
 import { getConfiguration } from "../../utils/builders"
+import { updatePartyALatestBalance, updatePartyBLatestBalance } from "../../utils/latestAccountBalance"
 
 export class DeallocateForPartyBHandler<T> extends CommonDeallocateForPartyBHandler<T> {
 	handle(_event: ethereum.Event, version: Version): void {
@@ -16,7 +17,7 @@ export class DeallocateForPartyBHandler<T> extends CommonDeallocateForPartyBHand
 		const event = changetype<T>(_event)
 
 		if (version < Version.v_0_8_3) {
-			let allocate = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toHexString())
+			let allocate = new BalanceChange(event.transaction.hash.toHex() + "-" + event.logIndex.toString())
 			allocate.source = event.address
 			allocate.type = balanceChangeTypes.get(BalanceChangeType.DEALLOCATE)
 			allocate.timestamp = event.block.timestamp
@@ -28,5 +29,7 @@ export class DeallocateForPartyBHandler<T> extends CommonDeallocateForPartyBHand
 			allocate.collateral = getConfiguration(event).collateral
 			allocate.save()
 		}
+		updatePartyALatestBalance(_event, version, event.params.partyA)
+		updatePartyBLatestBalance(_event, version, event.params.partyB, event.params.partyA)
 	}
 }

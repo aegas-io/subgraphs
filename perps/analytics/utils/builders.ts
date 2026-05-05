@@ -20,6 +20,7 @@ import {
 } from "../../../generated/schema"
 import { getDayNumber, startOfDay, startOfMonth, startOfWeek } from "./time"
 import { Version } from "../../common/BaseHandler"
+import { getCollateral as getCollateral_0_8_5 } from "../../common/contract_utils_0_8_5"
 import { getCollateral as getCollateral_0_8_4 } from "../../common/contract_utils_0_8_4"
 import { getCollateral as getCollateral_0_8_3 } from "../../common/contract_utils_0_8_3"
 import { getCollateral as getCollateral_0_8_2 } from "../../common/contract_utils_0_8_2"
@@ -49,6 +50,8 @@ export function getDailyHistoryForTimestamp(timestamp: BigInt, accountSource: By
 		dh.activeUsers = BigInt.zero()
 		dh.newAccounts = BigInt.zero()
 		dh.platformFee = BigInt.zero()
+		dh.openFee = BigInt.zero()
+		dh.closeFee = BigInt.zero()
 		dh.symmioShare = BigInt.zero()
 		dh.openInterest = BigInt.zero()
 		dh.fundingPaid = BigInt.zero()
@@ -84,6 +87,8 @@ export function getSolverDailyHistoryForTimestamp(timestamp: BigInt, solver: Byt
 		sdh.accountSource = accountSource === null ? ZERO_ADDRESS_BYTES : accountSource
 		sdh.solver = solver
 		sdh.platformFee = BigInt.zero()
+		sdh.openFee = BigInt.zero()
+		sdh.closeFee = BigInt.zero()
 		sdh.source = source
 		sdh.save()
 	}
@@ -110,6 +115,8 @@ export function getSolverOnlyDailyHistoryForTimestamp(timestamp: BigInt, solver:
 		sodh.fundingReceived = BigInt.zero()
 		sodh.solver = solver
 		sodh.platformFee = BigInt.zero()
+		sodh.openFee = BigInt.zero()
+		sodh.closeFee = BigInt.zero()
 		sodh.source = source
 		sodh.save()
 	}
@@ -191,6 +198,8 @@ export function getTotalHistory(timestamp: BigInt, accountSource: Bytes | null, 
 		th.users = BigInt.zero()
 		th.accounts = BigInt.zero()
 		th.platformFee = BigInt.zero()
+		th.openFee = BigInt.zero()
+		th.closeFee = BigInt.zero()
 		th.fundingReceived = BigInt.zero()
 		th.fundingPaid = BigInt.zero()
 		th.collateral = collateral
@@ -201,11 +210,12 @@ export function getTotalHistory(timestamp: BigInt, accountSource: Bytes | null, 
 	return th
 }
 
-export function getSymbolTradeHistory(symbol: BigInt, timestamp: BigInt, accountSource: Bytes | null): SymbolTradeHistory {
-	const id = symbol.toString() + "_" + (accountSource === null ? ZERO_ADDRESS : accountSource.toHexString())
+export function getSymbolTradeHistory(symbol: BigInt, timestamp: BigInt, accountSource: Bytes | null, source: Bytes): SymbolTradeHistory {
+	const id = symbol.toString() + "_" + source.toHexString() + "_" + (accountSource === null ? ZERO_ADDRESS : accountSource.toHexString())
 	let stv = SymbolTradeHistory.load(id)
 	if (stv == null) {
 		stv = new SymbolTradeHistory(id)
+		stv.source = source
 		stv.updateTimestamp = timestamp
 		stv.timestamp = timestamp
 		stv.accountSource = accountSource === null ? ZERO_ADDRESS_BYTES : accountSource
@@ -233,7 +243,7 @@ export function getDailySymbolTradesHistory(
 		"_" +
 		account.toHexString() +
 		"_" +
-		symbolId.toHexString()
+		symbolId.toString()
 
 	let history = DailySymbolTradesHistory.load(id)
 
@@ -249,6 +259,9 @@ export function getDailySymbolTradesHistory(
 		history.fundingPaid = BigInt.zero()
 		history.fundingReceived = BigInt.zero()
 		history.platformFeePaid = BigInt.zero()
+		history.openFeePaid = BigInt.zero()
+		history.closeFeePaid = BigInt.zero()
+		history.volume = BigInt.zero()
 		history.save()
 	}
 	return history
@@ -259,13 +272,22 @@ export function getTotalSymbolTradesHistory(
 	account: Bytes,
 	accountSource: Bytes | null,
 	symbolId: BigInt,
+	source: Bytes,
 ): TotalSymbolTradesHistory {
-	const id = (accountSource === null ? ZERO_ADDRESS : accountSource.toHexString()) + "_" + account.toHexString() + "_" + symbolId.toHexString()
+	const id =
+		source.toHexString() +
+		"_" +
+		(accountSource === null ? ZERO_ADDRESS : accountSource.toHexString()) +
+		"_" +
+		account.toHexString() +
+		"_" +
+		symbolId.toString()
 
 	let history = TotalSymbolTradesHistory.load(id)
 
 	if (history == null) {
 		history = new TotalSymbolTradesHistory(id)
+		history.source = source
 		history.updateTimestamp = timestamp
 		history.account = account
 		history.accountSource = accountSource === null ? ZERO_ADDRESS_BYTES : accountSource
@@ -274,6 +296,9 @@ export function getTotalSymbolTradesHistory(
 		history.fundingPaid = BigInt.zero()
 		history.fundingReceived = BigInt.zero()
 		history.platformFeePaid = BigInt.zero()
+		history.openFeePaid = BigInt.zero()
+		history.closeFeePaid = BigInt.zero()
+		history.volume = BigInt.zero()
 		history.save()
 	}
 	return history
@@ -290,7 +315,9 @@ export function getDailyUserHistoryForTimestamp(timestamp: BigInt, account: Acco
 		dh = new DailyUserHistory(id)
 		dh.day = getDayNumber(timestamp)
 		dh.updateTimestamp = timestamp
+		dh.user = account.user
 		dh.account = account.account
+		dh.accountRef = account.id
 		dh.timestamp = timestamp
 		dh.deposit = BigInt.zero()
 		dh.withdraw = BigInt.zero()
@@ -303,6 +330,8 @@ export function getDailyUserHistoryForTimestamp(timestamp: BigInt, account: Acco
 		dh.accAllocate = th.allocate // carry over from total history
 		dh.accDeallocate = th.deallocate // carry over from total history
 		dh.platformFeePaid = BigInt.zero()
+		dh.openFeePaid = BigInt.zero()
+		dh.closeFeePaid = BigInt.zero()
 		dh.fundingPaid = BigInt.zero()
 		dh.fundingReceived = BigInt.zero()
 		dh.loss = BigInt.zero()
@@ -331,11 +360,14 @@ export function getTotalUserHistory(timestamp: BigInt, account: Account): TotalU
 		th.allocate = BigInt.zero()
 		th.deallocate = BigInt.zero()
 		th.platformFeePaid = BigInt.zero()
+		th.openFeePaid = BigInt.zero()
+		th.closeFeePaid = BigInt.zero()
 		th.fundingPaid = BigInt.zero()
 		th.fundingReceived = BigInt.zero()
 		th.loss = BigInt.zero()
 		th.profit = BigInt.zero()
 		th.account = account.account
+		th.accountRef = account.id
 		th.accountSource = account.accountSource === null ? ZERO_ADDRESS_BYTES : account.accountSource
 		th.save()
 	}
@@ -409,32 +441,36 @@ export function getConfiguration(event: ethereum.Event): Configuration {
 export function getAlreadyCreatedConfiguration(event: ethereum.Event, version: Version): Configuration {
 	let conf = Configuration.load("0")!
 	if (conf.collateral == event.address) {
+		let collateral: Bytes | null = null
 		switch (version) {
+			case Version.v_0_8_5: {
+				collateral = getCollateral_0_8_5(event.address)
+				break
+			}
 			case Version.v_0_8_4: {
-				conf.collateral = getCollateral_0_8_4(event.address)!
-				conf.save()
+				collateral = getCollateral_0_8_4(event.address)
 				break
 			}
 			case Version.v_0_8_3: {
-				conf.collateral = getCollateral_0_8_3(event.address)!
-				conf.save()
+				collateral = getCollateral_0_8_3(event.address)
 				break
 			}
 			case Version.v_0_8_2: {
-				conf.collateral = getCollateral_0_8_2(event.address)!
-				conf.save()
+				collateral = getCollateral_0_8_2(event.address)
 				break
 			}
 			case Version.v_0_8_1: {
-				conf.collateral = getCollateral_0_8_1(event.address)!
-				conf.save()
+				collateral = getCollateral_0_8_1(event.address)
 				break
 			}
 			case Version.v_0_8_0: {
-				conf.collateral = getCollateral_0_8_0(event.address)!
-				conf.save()
+				collateral = getCollateral_0_8_0(event.address)
 				break
 			}
+		}
+		if (collateral) {
+			conf.collateral = collateral
+			conf.save()
 		}
 	}
 	return conf

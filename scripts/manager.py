@@ -13,6 +13,56 @@ from typing import Any, Dict, List, Optional, Set
 import yaml
 
 
+def load_env_file():
+    """Load variables from .env file (does not override existing env vars)."""
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")
+    if not os.path.exists(env_path):
+        return
+    with open(env_path) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip().strip("'\"")
+                if key not in os.environ:
+                    os.environ[key] = value
+
+
+# ANSI colors
+class Style:
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+    RESET = "\033[0m"
+    GREEN = "\033[32m"
+    RED = "\033[31m"
+    YELLOW = "\033[33m"
+    BLUE = "\033[34m"
+    CYAN = "\033[36m"
+
+
+def step(current, total, msg):
+    print(f"{Style.BLUE}{Style.BOLD}[{current}/{total}]{Style.RESET} {msg}")
+
+
+def success(msg):
+    print(f"  {Style.GREEN}✓{Style.RESET} {msg}")
+
+
+def warn(msg):
+    print(f"  {Style.YELLOW}⚠{Style.RESET} {msg}")
+
+
+def error(msg):
+    print(f"  {Style.RED}✗{Style.RESET} {msg}")
+
+
+def header(msg):
+    print(f"\n{Style.CYAN}{Style.BOLD}{'─' * 50}")
+    print(f"  {msg}")
+    print(f"{'─' * 50}{Style.RESET}\n")
+
+
 @dataclass
 class Event:
     source: str
@@ -42,27 +92,60 @@ class Contract:
 class Config:
     network: str
     contracts: List[Contract]
-    deploy_urls: Dict[str, str]
+    deploy_urls: Dict[str, Any]
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Config":
         contracts = [Contract(**c) for c in data["contracts"]]
         return cls(data["network"], contracts, data["deploy_urls"])
 
+    def get_deploy_url(self, module_name: str, provider: str = "goldsky") -> str:
+        url = self.deploy_urls.get(module_name)
+        if url is None:
+            raise KeyError(f"No deploy URL for module '{module_name}'")
+        if isinstance(url, dict):
+            if provider not in url:
+                raise KeyError(f"No deploy URL for provider '{provider}' in module '{module_name}'")
+            return url[provider]
+        # Plain string: use for any provider (same name across providers)
+        return url
+
 
 abi_versions = {
-    "symmio": ["0_8_0", "0_8_1", "0_8_2", "0_8_3", "0_8_4"],
+    "symmio": ["0_8_0", "0_8_1", "0_8_2", "0_8_3", "0_8_4", "0_8_5"],
     "symmioMultiAccount": ["1", "2", "3"],
-    "timelock": ["1"],
-    "vault": ["1"],
-    "vault_token": ["1"],
-    "staking": ["1"],
-    "vesting": ["1"],
-    "symm_token": ["1"],
     "options": ["1"],
     "optionsMultiAccount": ["1"],
     "feeCollector": ["1"],
+    "accountLayer": ["1"],
 }
+
+# Maps ABI name → version enum name used in BaseHandler.ts
+abi_version_enums: Dict[str, str] = {
+    "symmio": "Version",
+    "symmioMultiAccount": "MultiAccountVersion",
+    "feeCollector": "FeeCollectorVersion",
+    "accountLayer": "AccountLayerVersion",
+    "options": "Version",
+    "optionsMultiAccount": "MultiAccountVersion",
+}
+
+SYNC_META_SCHEMA = """
+type SyncMeta @entity(immutable: false) {
+    id: ID!
+    globalVersion: String!
+    versionsHash: String!
+    deployedAt: BigInt!
+    versions: [EntityVersion!]! @derivedFrom(field: "meta")
+}
+
+type EntityVersion @entity(immutable: false) {
+    id: ID!
+    meta: SyncMeta!
+    version: String!
+    updatedAt: BigInt!
+}
+"""
 
 
 def json_to_yaml(json_data):
@@ -98,32 +181,119 @@ def create_schema_file(target_module: str, target_config: Dict[str, Any]):
             if model_name in target_config["importModels"]:
                 with open(os.path.join(common_models_dir, model), "r") as model_file:
                     dest_file.write("\n" + model_file.read())
+        dest_file.write("\n" + SYNC_META_SCHEMA)
         dest_file.write("#=======================\n\n")
         dest_file.write(src_file.read())
+
+
+def load_sync_versions(target_module: str) -> Dict[str, Any]:
+    path = os.path.join(target_module, "sync_versions.json")
+    if not os.path.exists(path):
+        return {"global": "0", "entities": {}}
+    with open(path, "r") as f:
+        data = json.load(f)
+    if "global" not in data or "entities" not in data:
+        raise ValueError(f"{path} must contain 'global' and 'entities' keys")
+    return data
+
+
+def generate_sync_meta_ts(target_module: str):
+    versions = load_sync_versions(target_module)
+    global_version = versions["global"]
+    entity_versions = versions.get("entities", {})
+    entity_version_items = sorted(entity_versions.items())
+    versions_hash = "|".join([f"{entity}:{version}" for entity, version in entity_version_items])
+
+    depth = target_module.count("/") + 1
+    generated_prefix = "../" * depth
+
+    lines = [
+        'import { BigInt, ethereum } from "@graphprotocol/graph-ts"',
+        f'import {{ EntityVersion, SyncMeta }} from "{generated_prefix}generated/schema"',
+        "",
+        f"const GLOBAL_VERSION = {json.dumps(global_version)}",
+        f"const VERSIONS_HASH = {json.dumps(versions_hash)}",
+        "",
+        "function ensureEntityVersion(id: string, versionValue: string, timestamp: BigInt): void {",
+        "    let entityVersion = EntityVersion.load(id)",
+        "    let isNew = entityVersion == null",
+        "    if (entityVersion == null) {",
+        "        entityVersion = new EntityVersion(id)",
+        '        entityVersion.meta = "meta"',
+        "    }",
+        "    if (isNew || entityVersion.version != versionValue) {",
+        '        entityVersion.meta = "meta"',
+        "        entityVersion.version = versionValue",
+        "        entityVersion.updatedAt = timestamp",
+        "        entityVersion.save()",
+        "    }",
+        "}",
+        "",
+        "export function ensureSyncMeta(block: ethereum.Block): void {",
+        '    let meta = SyncMeta.load("meta")',
+        "    if (meta != null) {",
+        "        if (meta.globalVersion == GLOBAL_VERSION && meta.versionsHash == VERSIONS_HASH) {",
+        "            return",
+        "        }",
+        "    }",
+        "    if (meta == null) {",
+        '        meta = new SyncMeta("meta")',
+        "    }",
+        "    meta.globalVersion = GLOBAL_VERSION",
+        "    meta.versionsHash = VERSIONS_HASH",
+        "    meta.deployedAt = block.timestamp",
+        "    meta.save()",
+    ]
+
+    for entity, version in entity_version_items:
+        lines.append(f'    ensureEntityVersion("{entity}", "{version}", block.timestamp)')
+
+    lines += [
+        "}",
+        "",
+    ]
+
+    with open(os.path.join(target_module, "src_sync_meta.ts"), "w") as src_file:
+        src_file.write("\n".join(lines))
 
 
 def generate_src_ts(target_module: str, contract: Contract):
     imports = set()
     handlers_code = []
 
+    # Determine import depth: multi-module (perps/events) = 2, single = 1
+    depth = target_module.count("/") + 1
+    generated_prefix = "../" * depth
+
+    # Determine correct version enum for this ABI type
+    version_enum = abi_version_enums.get(contract.abi, "Version")
+
+    # Determine BaseHandler import path
+    if "/" in target_module:
+        base_handler_path = "../common/BaseHandler"
+    else:
+        base_handler_path = "./BaseHandler"
+
     # Sort events by name
     sorted_events = sorted(contract.events, key=lambda e: e.name)
 
     for event in sorted_events:
         imports.add(f"import {{{event.name}Handler}} from './handlers/{contract.abi}/{event.name}Handler'")
-        imports.add(f"import {{{event.numbered_name}}} from '../generated/{event.source}/{event.source}'")
+        imports.add(f"import {{{event.numbered_name}}} from '{generated_prefix}generated/{event.source}/{event.source}'")
+        imports.add("import {ensureSyncMeta} from './src_sync_meta'")
         handlers_code.append(
             textwrap.dedent(
                 f"""
                 export function {event.handler_name}(event: {event.numbered_name}): void {{
+                    ensureSyncMeta(event.block)
                     let handler = new {event.name}Handler<{event.numbered_name}>()
-                    handler.handle(event, Version.v_{contract.version})
+                    handler.handle(event, {version_enum}.v_{contract.version})
                 }}
                 """
             )
         )
 
-    imports.add("import {Version} from '../common/BaseHandler'")
+    imports.add(f"import {{{version_enum}}} from '{base_handler_path}'")
 
     with open(os.path.join(target_module, f"src_{contract.path()}.ts"), "w") as src_file:
         src_file.write("\n".join(sorted(imports)))
@@ -220,7 +390,7 @@ def load_dependencies(file_path: str) -> Dict[str, List[str]]:
         with open(file_path, "r") as deps_file:
             return json.load(deps_file)
     except FileNotFoundError:
-        print(f"Dependencies file not found: {file_path}")
+        warn(f"Dependencies file not found: {file_path}")
         return {}
 
 
@@ -290,16 +460,44 @@ def prepare_module(config: Config, target_module: str):
     create_schema_file(target_module, target_config)
     models = get_scheme_models()
 
-    # Create a set of all unique ABIs
+    # Create a set of all unique ABIs from config
     unique_abis = set(contract.abi for contract in config.contracts)
+    config_abis = set(unique_abis)  # snapshot before auto-detection
+
+    # Also detect ABIs needed by the module (deps/src files exist) but not in config
+    common_prefix, *_ = target_module.split("/")
+    common_dir = os.path.join(common_prefix, "common")
+    for abi, versions in abi_versions.items():
+        if abi in unique_abis:
+            continue
+        for version in versions:
+            if (
+                os.path.exists(os.path.join(target_module, f"deps_{abi}_{version}.json"))
+                or os.path.exists(os.path.join(common_dir, f"deps_{abi}_{version}.json"))
+                or os.path.exists(os.path.join(target_module, f"src_{abi}_{version}.ts"))
+            ):
+                unique_abis.add(abi)
+                break
 
     # Create a list to store all contracts, including the new versions
     all_contracts = []
+    global_max_start_block = max(int(c.startBlock) for c in config.contracts)
 
     # Process events for each contract and add missing versions
     for abi in unique_abis:
         versions = abi_versions[abi]
-        max_start_block = max(int(c.startBlock) for c in config.contracts if c.abi == abi)
+        contracts_for_abi = [c for c in config.contracts if c.abi == abi]
+
+        if contracts_for_abi:
+            max_start_block = max(int(c.startBlock) for c in contracts_for_abi)
+            base_address = next(c.address for c in contracts_for_abi)
+            base_name = next((c.name for c in contracts_for_abi if c.name), None)
+        else:
+            # ABI needed by module but not in config - use global max block and a real address
+            # (zero address is rejected by Graph nodes during deployment)
+            max_start_block = global_max_start_block
+            base_address = config.contracts[0].address
+            base_name = None
 
         for version in versions:
             existing_contracts = [c for c in config.contracts if c.abi == abi and c.version == version]
@@ -308,15 +506,12 @@ def prepare_module(config: Config, target_module: str):
             else:
                 new_contract = Contract(
                     fake=True,
-                    address=next(c.address for c in config.contracts if c.abi == abi),
+                    address=base_address,
                     abi=abi,
                     version=version,
                     startBlock=str(max_start_block),
                     endBlock=str(max_start_block),
-                    name=next(
-                        (c.name for c in config.contracts if c.abi == abi and c.name),
-                        None,
-                    ),
+                    name=base_name,
                 )
                 all_contracts.append(new_contract)
 
@@ -380,6 +575,20 @@ def prepare_module(config: Config, target_module: str):
 
         if len(contract.dependencies) > 0:
             source_config["mapping"]["abis"] += [{"name": dep, "file": f"./abis/{dep}.json"} for dep in contract.dependencies]
+
+        # symmio handlers (Allocate/Deposit/Withdraw) call accountLayer_1.bind() via the resolver
+        # to fix the activeUsers ordering bug. Every symmio data source on chains using accountLayer
+        # must declare accountLayer_1 in its abis so the binding can be resolved at runtime.
+        if contract.abi == "symmio" and "accountLayer" in unique_abis:
+            if not any(a["name"] == "accountLayer_1" for a in source_config["mapping"]["abis"]):
+                source_config["mapping"]["abis"].append({"name": "accountLayer_1", "file": "./abis/accountLayer_1.json"})
+
+        # Auto-include ABIs that were detected from deps/src files but not in config
+        existing_abi_names = set(a["name"] for a in source_config["mapping"]["abis"])
+        for c in all_contracts:
+            if c.abi not in config_abis and c.path() not in existing_abi_names and c.events:
+                source_config["mapping"]["abis"].append({"name": c.path(), "file": f"./abis/{c.path()}.json"})
+                existing_abi_names.add(c.path())
 
         contract_indexes[(contract.abi, contract.version)] += 1
 
@@ -472,6 +681,108 @@ def generate_and_print_entities(config: Config):
         print("}\n")
 
 
+def _abi_has_function(abi_file_path: str, function_name: str) -> bool:
+    """Check if an ABI file contains a specific function."""
+    try:
+        with open(abi_file_path, "r") as f:
+            abi = json.load(f)
+        return any(entry.get("type") == "function" and entry.get("name") == function_name for entry in abi)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return False
+
+
+def generate_contract_utils(common_dir: str, version: str):
+    """Generate a contract_utils_{version}.ts file for a symmio version."""
+    v = version  # short alias
+    abi_file = f"./configs/abis/symmio_{v}.json"
+    has_liquidation = _abi_has_function(abi_file, "getLiquidatedStateOfPartyA")
+
+    lines = []
+    lines.append(f'import {{Address, BigInt, Bytes, log}} from "@graphprotocol/graph-ts"')
+
+    # Build import list from generated types
+    imports = [
+        f"symmio_{v}",
+        f"symmio_{v}__balanceInfoOfPartyAResult",
+        f"symmio_{v}__balanceInfoOfPartyBResult",
+        f"symmio_{v}__getQuoteResultValue0Struct",
+    ]
+    if has_liquidation:
+        imports.append(f"symmio_{v}__getLiquidatedStateOfPartyAResultValue0Struct")
+
+    lines.append("import {")
+    lines.append("\t" + ",\n\t".join(imports) + ",")
+    lines.append(f'}} from "../../generated/symmio_{v}/symmio_{v}"')
+    lines.append("")
+
+    # getQuote
+    lines.append(f"export function getQuote(address: Address, id: BigInt): symmio_{v}__getQuoteResultValue0Struct | null {{")
+    lines.append(f"\tconst contract = symmio_{v}.bind(address)")
+    lines.append(f"\tlet result = contract.try_getQuote(id)")
+    lines.append(f"\treturn result.reverted ? null : result.value")
+    lines.append(f"}}")
+    lines.append("")
+
+    # getCollateral
+    lines.append(f"export function getCollateral(address: Address,): Bytes | null {{")
+    lines.append(f"\tconst contract = symmio_{v}.bind(address)")
+    lines.append(f"\tlet result = contract.try_getCollateral()")
+    lines.append(f"\treturn result.reverted ? null : result.value")
+    lines.append(f"}}")
+    lines.append("")
+
+    # getLiquidatedStateOfPartyA (only v0.8.1+)
+    if has_liquidation:
+        lines.append(
+            f"export function getLiquidatedStateOfPartyA(address: Address, partyA: Address): "
+            f"symmio_{v}__getLiquidatedStateOfPartyAResultValue0Struct | null {{"
+        )
+        lines.append(f"\tconst contract = symmio_{v}.bind(address)")
+        lines.append(f"\tlet result = contract.try_getLiquidatedStateOfPartyA(partyA)")
+        lines.append(f"\treturn result.reverted ? null : result.value")
+        lines.append(f"}}")
+        lines.append("")
+
+    # getBalanceInfoOfPartyA
+    lines.append(
+        f"export function getBalanceInfoOfPartyA(address: Address, partyA: Address): "
+        f"symmio_{v}__balanceInfoOfPartyAResult | null {{"
+    )
+    lines.append(f"\tconst contract = symmio_{v}.bind(address)")
+    lines.append(f"\tlet result = contract.try_balanceInfoOfPartyA(partyA)")
+    lines.append(f"\treturn result.reverted ? null : result.value")
+    lines.append(f"}}")
+    lines.append("")
+
+    # getBalanceInfoOfPartyB
+    lines.append(
+        f"export function getBalanceInfoOfPartyB(address: Address, partyA: Address, partyB: Address): "
+        f"symmio_{v}__balanceInfoOfPartyBResult | null {{"
+    )
+    lines.append(f"\tconst contract = symmio_{v}.bind(address)")
+    lines.append(f"\tlet result = contract.try_balanceInfoOfPartyB(partyB, partyA)")
+    lines.append(f"\treturn result.reverted ? null : result.value")
+    lines.append(f"}}")
+    lines.append("")
+
+    # symbolIdToSymbolName
+    lines.append(f"export function symbolIdToSymbolName(symbolId: BigInt, contractAddress: Address): string {{")
+    lines.append(f"\tlet symmioContract = symmio_{v}.bind(contractAddress)")
+    lines.append(f"\tlet callResult = symmioContract.try_symbolNameById([symbolId])")
+    lines.append(f"\tif (callResult.reverted) {{")
+    lines.append(f'\t\tlog.error("error in symbol bind", [])')
+    lines.append(f'\t\treturn ""')
+    lines.append(f"\t}} else {{")
+    lines.append(f"\t\treturn callResult.value[0]")
+    lines.append(f"\t}}")
+    lines.append(f"}}")
+
+    out_path = os.path.join(common_dir, f"contract_utils_{v}.ts")
+    with open(out_path, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    success(f"Generated {out_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Module preparation script.")
     parser.add_argument("config_file", type=str, help="Configuration file path")
@@ -488,14 +799,43 @@ def main():
         action="store_true",
         help="Delete 'latest' tag from the subgraph",
     )
+    parser.add_argument("--add-stage-tag", action="store_true", help="Add 'stage' tag to the subgraph")
+    parser.add_argument(
+        "--delete-stage-tag",
+        action="store_true",
+        help="Delete 'stage' tag from the subgraph",
+    )
     parser.add_argument("--generate-entities", action="store_true", help="Generate and print entities")  # New option
+    parser.add_argument("--create-utils", action="store_true", help="Generate contract_utils files for symmio versions")
+    parser.add_argument("--provider", choices=["goldsky", "0xgraph"], default="goldsky", help="Deployment provider (default: goldsky)")
 
     args = parser.parse_args()
     if not os.path.exists(args.config_file):
-        print(f"Configuration file {args.config_file} does not exist!")
+        error(f"Configuration file {args.config_file} does not exist!")
         sys.exit(1)
 
-    subprocess.run(["./scripts/clean.sh"], check=True)
+    is_tag_or_delete = args.add_latest_tag or args.delete_latest_tag or args.add_stage_tag or args.delete_stage_tag or args.delete
+    is_build = not is_tag_or_delete
+    config_name = os.path.splitext(os.path.basename(args.config_file))[0]
+
+    # Determine action label for header
+    if args.deploy:
+        action_label = f"Build & Deploy {args.version}"
+    elif args.delete:
+        action_label = f"Delete {args.version}"
+    elif args.add_latest_tag:
+        action_label = f"Tag {args.version} → latest"
+    elif args.delete_latest_tag:
+        action_label = f"Untag latest from {args.version}"
+    elif args.add_stage_tag:
+        action_label = f"Tag {args.version} → stage"
+    elif args.delete_stage_tag:
+        action_label = f"Untag stage from {args.version}"
+    else:
+        action_label = "Build"
+    header(f"{action_label}  ·  {config_name}  ·  {args.module_name}")
+
+    subprocess.run(["./scripts/clean.sh"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     with open(args.config_file, "r") as f:
         config_data = json.load(f)
@@ -506,40 +846,109 @@ def main():
         generate_and_print_entities(config)
         sys.exit(0)
 
-    if not args.add_latest_tag and not args.delete_latest_tag and not args.delete:
+    if is_build:
+        # Count total build steps
+        build_steps = 4  # clean, prepare, codegen, build
+        if args.create_utils:
+            build_steps += 1
+        if args.create_src:
+            build_steps += 1
+        if args.create_handlers:
+            build_steps += 1
+        current_step = 0
+
+        current_step += 1
+        step(current_step, build_steps, "Cleaning old artifacts...")
+        success("Clean")
+
+        current_step += 1
+        step(current_step, build_steps, "Preparing module...")
         prepare_module(config, args.module_name)
+        generate_sync_meta_ts(args.module_name)
+        success("Module prepared")
 
-    if args.create_src:
-        for contract in config.contracts:
-            if contract.events:
-                generate_src_ts(args.module_name, contract)
+        if args.create_utils:
+            current_step += 1
+            step(current_step, build_steps, "Generating contract utils...")
+            common_prefix, *_ = args.module_name.split("/")
+            common_dir = os.path.join(common_prefix, "common")
+            for version in abi_versions.get("symmio", []):
+                generate_contract_utils(common_dir, version)
 
-    if args.create_handlers:
-        for contract in config.contracts:
-            generate_handler_files(args.module_name, contract, args.simple_mapping)
+        if args.create_src:
+            current_step += 1
+            step(current_step, build_steps, "Generating src entry files...")
+            for contract in config.contracts:
+                if contract.events:
+                    generate_src_ts(args.module_name, contract)
+            success("Src files generated")
 
-    if not args.add_latest_tag and not args.delete_latest_tag and not args.delete:
+        if args.create_handlers:
+            current_step += 1
+            step(current_step, build_steps, "Generating handler files...")
+            for contract in config.contracts:
+                generate_handler_files(args.module_name, contract, args.simple_mapping)
+            success("Handler files generated")
+
+        current_step += 1
+        step(current_step, build_steps, "Running codegen...")
         subprocess.run(["graph", "codegen"], check=True)
+        success("Codegen complete")
+
+        current_step += 1
+        step(current_step, build_steps, "Building subgraph...")
         subprocess.run(["graph", "build"], check=True)
+        success("Build complete")
 
     if args.deploy:
         if args.version is None:
             raise Exception("Version should be provided with --version")
-        deploy_url = config.deploy_urls[args.module_name]
-        command = [
-            "goldsky",
-            "subgraph",
-            "deploy",
-            f"{deploy_url}/{args.version}",
-            "--path",
-            "build",
-        ]
-        subprocess.run(command, check=True)
+        deploy_url = config.get_deploy_url(args.module_name, args.provider)
+
+        if args.provider == "goldsky":
+            step(1, 1, f"Deploying to Goldsky as {Style.BOLD}{deploy_url}/{args.version}{Style.RESET}...")
+            command = [
+                "goldsky",
+                "subgraph",
+                "deploy",
+                f"{deploy_url}/{args.version}",
+                "--path",
+                "build",
+            ]
+            subprocess.run(command, check=True)
+            success(f"Deployed {args.version} to Goldsky")
+
+        elif args.provider == "0xgraph":
+            load_env_file()
+            deploy_key = os.environ.get("OXGRAPH_DEPLOY_KEY")
+            if not deploy_key:
+                error("OXGRAPH_DEPLOY_KEY not set. Add it to .env or export it as an environment variable.")
+                sys.exit(1)
+            step(1, 1, f"Deploying to 0xGraph as {Style.BOLD}{deploy_url}{Style.RESET} ({args.version})...")
+            command = [
+                "graph",
+                "deploy",
+                deploy_url,
+                "--version-label",
+                args.version,
+                "--node",
+                "https://api.subgraph.ormilabs.com/deploy",
+                "--ipfs",
+                "https://api.subgraph.ormilabs.com/ipfs",
+                "--deploy-key",
+                deploy_key,
+            ]
+            subprocess.run(command, check=True)
+            success(f"Deployed {args.version} to 0xGraph")
 
     if args.delete:
         if args.version is None:
             raise Exception("Version should be provided with --version")
-        deploy_url = config.deploy_urls[args.module_name]
+        if args.provider != "goldsky":
+            error(f"--delete is only supported for goldsky provider")
+            sys.exit(1)
+        deploy_url = config.get_deploy_url(args.module_name, "goldsky")
+        step(1, 1, f"Deleting {Style.BOLD}{deploy_url}/{args.version}{Style.RESET}...")
         command = [
             "goldsky",
             "subgraph",
@@ -548,11 +957,16 @@ def main():
             f"{deploy_url}/{args.version}",
         ]
         subprocess.run(command, check=True)
+        success(f"Deleted {args.version}")
 
     if args.add_latest_tag:
         if args.version is None:
             raise Exception("Version should be provided with --version")
-        deploy_url = config.deploy_urls[args.module_name]
+        if args.provider != "goldsky":
+            error(f"--add-latest-tag is only supported for goldsky provider")
+            sys.exit(1)
+        deploy_url = config.get_deploy_url(args.module_name, "goldsky")
+        step(1, 1, f"Adding {Style.BOLD}latest{Style.RESET} tag to {deploy_url}/{args.version}...")
         command = [
             "goldsky",
             "subgraph",
@@ -560,14 +974,39 @@ def main():
             "create",
             f"{deploy_url}/{args.version}",
             "--tag",
-            "latest",  # "multi_source",
+            "latest",
         ]
         subprocess.run(command, check=True)
+        success("Tagged as latest")
+
+    if args.add_stage_tag:
+        if args.version is None:
+            raise Exception("Version should be provided with --version")
+        if args.provider != "goldsky":
+            error(f"--add-stage-tag is only supported for goldsky provider")
+            sys.exit(1)
+        deploy_url = config.get_deploy_url(args.module_name, "goldsky")
+        step(1, 1, f"Adding {Style.BOLD}stage{Style.RESET} tag to {deploy_url}/{args.version}...")
+        command = [
+            "goldsky",
+            "subgraph",
+            "tag",
+            "create",
+            f"{deploy_url}/{args.version}",
+            "--tag",
+            "stage",
+        ]
+        subprocess.run(command, check=True)
+        success("Tagged as stage")
 
     if args.delete_latest_tag:
         if args.version is None:
             raise Exception("Version should be provided with --version")
-        deploy_url = config.deploy_urls[args.module_name]
+        if args.provider != "goldsky":
+            error(f"--delete-latest-tag is only supported for goldsky provider")
+            sys.exit(1)
+        deploy_url = config.get_deploy_url(args.module_name, "goldsky")
+        step(1, 1, f"Deleting {Style.BOLD}latest{Style.RESET} tag from {deploy_url}/{args.version}...")
         command = [
             "goldsky",
             "subgraph",
@@ -579,6 +1018,30 @@ def main():
             "latest",
         ]
         subprocess.run(command, check=True)
+        success("Deleted latest tag")
+
+    if args.delete_stage_tag:
+        if args.version is None:
+            raise Exception("Version should be provided with --version")
+        if args.provider != "goldsky":
+            error(f"--delete-stage-tag is only supported for goldsky provider")
+            sys.exit(1)
+        deploy_url = config.get_deploy_url(args.module_name, "goldsky")
+        step(1, 1, f"Deleting {Style.BOLD}stage{Style.RESET} tag from {deploy_url}/{args.version}...")
+        command = [
+            "goldsky",
+            "subgraph",
+            "tag",
+            "delete",
+            f"{deploy_url}/{args.version}",
+            "-f",
+            "--tag",
+            "stage",
+        ]
+        subprocess.run(command, check=True)
+        success("Deleted stage tag")
+
+    print(f"\n{Style.GREEN}{Style.BOLD}✓ Done{Style.RESET}\n")
 
 
 if __name__ == "__main__":

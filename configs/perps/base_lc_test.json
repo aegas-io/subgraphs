@@ -1,0 +1,21 @@
+{
+	"network": "base",
+	"contracts": [
+		{
+			"address": "0x0f4352e4a88b5Dc0531a98B538F04893Fb22489C",
+			"abi": "symmio",
+			"version": "0_8_5",
+			"startBlock": "41664666"
+		},
+		{
+			"address": "0xE566bcdC59a644A6D71564f4E941CF93b6A37846",
+			"abi": "accountLayer",
+			"version": "1",
+			"startBlock": "42302196"
+		}
+	],
+	"deploy_urls": {
+		"perps/analytics": "base_lc_test_analytics",
+		"perps/events": "base_lc_test_events"
+	}
+}

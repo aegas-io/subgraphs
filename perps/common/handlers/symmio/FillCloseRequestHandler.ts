@@ -1,104 +1,60 @@
 import { DebugEntity, Quote } from "../../../../generated/schema"
 import { BaseHandler, Version } from "../../BaseHandler"
-import { ethereum } from "@graphprotocol/graph-ts"
-import { getQuote as getQuote_0_8_4 } from "../../contract_utils_0_8_4"
-import { getQuote as getQuote_0_8_3 } from "../../contract_utils_0_8_3"
-import { getQuote as getQuote_0_8_2 } from "../../contract_utils_0_8_2"
-import { getQuote as getQuote_0_8_1 } from "../../contract_utils_0_8_1"
-import { getQuote as getQuote_0_8_0 } from "../../contract_utils_0_8_0"
-import { setEventTimestampAndTransactionHashAndAction } from "../../utils/quote"
+import { BigInt, ethereum } from "@graphprotocol/graph-ts"
+import { getQuoteData } from "../../VersionedQuoteLoader"
+import { applyFundingTotalsFromAccumulatedFundingChange, setEventTimestampAndTransactionHashAndAction } from "../../utils/quote"
 import { QuoteStatus } from "../../../analytics/utils/constants"
+
+function isClosePendingStatus(status: i32): boolean {
+	return status == QuoteStatus.CLOSE_PENDING || status == QuoteStatus.CANCEL_CLOSE_PENDING
+}
 
 export class FillCloseRequestHandler<T> extends BaseHandler {
 	handleQuote(_event: ethereum.Event, version: Version): void {
-		let db = new DebugEntity("FillCloseRequestHandler common")
 		// @ts-ignore
 		const event = changetype<T>(_event)
 		let quote = Quote.load(event.params.quoteId.toString() + "-" + event.address.toHexString())
-		if (!quote) { //  TODO: remove after debug
+		if (!quote) {
+			let db = new DebugEntity("FillCloseRequest-" + event.transaction.hash.toHexString() + "-" + event.logIndex.toString())
 			db.message = `quoteId: ${event.params.quoteId.toString()} not exist`
 			db.save()
 			return
 		}
 		quote.globalCounter = super.handleGlobalCounter()
 
-		switch (version) {
-			case Version.v_0_8_4: {
-				let q = getQuote_0_8_4(event.address, event.params.quoteId)
-				if (!q) {
-					db.message = `quoteId: ${event.params.quoteId.toString()} getQuote_0_8_4 problem`
-					db.save()
-					return
-				}
-				quote.cva = q.lockedValues.cva
-				quote.partyAmm = q.lockedValues.partyAmm
-				quote.partyBmm = q.lockedValues.partyBmm
-				quote.lf = q.lockedValues.lf
-				break
-			}
-			case Version.v_0_8_3: {
-				let q = getQuote_0_8_3(event.address, event.params.quoteId)
-				if (!q) {
-					db.message = `quoteId: ${event.params.quoteId.toString()} getQuote_0_8_3 problem`
-					db.save()
-					return
-				}
-				quote.cva = q.lockedValues.cva
-				quote.partyAmm = q.lockedValues.partyAmm
-				quote.partyBmm = q.lockedValues.partyBmm
-				quote.lf = q.lockedValues.lf
-				break
-			}
-			case Version.v_0_8_2: {
-				let q = getQuote_0_8_2(event.address, event.params.quoteId)
-				if (!q) {
-					db.message = `quoteId: ${event.params.quoteId.toString()} getQuote_0_8_2 problem`
-					db.save()
-					return
-				}
-				quote.cva = q.lockedValues.cva
-				quote.partyAmm = q.lockedValues.partyAmm
-				quote.partyBmm = q.lockedValues.partyBmm
-				quote.lf = q.lockedValues.lf
-				break
-			}
-			case Version.v_0_8_1: {
-				let q = getQuote_0_8_1(event.address, event.params.quoteId)
-				if (!q) {
-					db.message = `quoteId: ${event.params.quoteId.toString()} getQuote_0_8_1 problem`
-					db.save()
-					return
-				}
-				quote.cva = q.lockedValues.cva
-				quote.partyAmm = q.lockedValues.partyAmm
-				quote.partyBmm = q.lockedValues.partyBmm
-				quote.lf = q.lockedValues.lf
-				break
-			}
-			case Version.v_0_8_0: {
-				let q = getQuote_0_8_0(event.address, event.params.quoteId)
-				if (!q) {
-					db.message = `quoteId: ${event.params.quoteId.toString()} getQuote_0_8_0 problem`
-					db.save()
-					return
-				}
-				quote.cva = q.lockedValues.cva
-				quote.partyAmm = q.lockedValues.mm
-				quote.partyBmm = q.lockedValues.mm
-				quote.lf = q.lockedValues.lf
-				break
-			}
+		let data = getQuoteData(version, event.address, event.params.quoteId)
+		if (!data) {
+			let db = new DebugEntity("FillCloseRequest-getQuote-" + event.transaction.hash.toHexString() + "-" + event.logIndex.toString())
+			db.message = `quoteId: ${event.params.quoteId.toString()} getQuote problem`
+			db.save()
+			return
 		}
+		quote.cva = data.cva
+		quote.partyAmm = data.partyAmm
+		quote.partyBmm = data.partyBmm
+		quote.lf = data.lf
+		applyFundingTotalsFromAccumulatedFundingChange(quote, data.accumulatedPaidFunding, quote.quantity!.minus(quote.closedAmount!))
+		quote.accumulatedPaidFunding = data.accumulatedPaidFunding
+		quote.lastFundingPaymentTimestamp = data.lastFundingPaymentTimestamp
 
 		quote.quoteId = event.params.quoteId
 		quote.fillAmount = event.params.filledAmount
 		quote.closedPrice = event.params.closedPrice
-		quote.averageClosedPrice = quote
-			.closedAmount!.times(quote.averageClosedPrice!)
-			.plus(event.params.filledAmount.times(event.params.closedPrice))
-			.div(quote.closedAmount!.plus(event.params.filledAmount))
+		let denominator = quote.closedAmount!.plus(event.params.filledAmount)
+		if (denominator.gt(BigInt.zero())) {
+			quote.averageClosedPrice = quote
+				.closedAmount!.times(quote.averageClosedPrice!)
+				.plus(event.params.filledAmount.times(event.params.closedPrice))
+				.div(denominator)
+		}
 		quote.closedAmount = quote.closedAmount!.plus(event.params.filledAmount)
-		if (quote.quantity! == quote.closedAmount!) quote.quoteStatus = QuoteStatus.CLOSED
+		quote.quoteStatus = event.params.quoteStatus
+		if (isClosePendingStatus(event.params.quoteStatus)) {
+			quote.quantityToClose = quote.quantityToClose!.minus(event.params.filledAmount)
+		} else {
+			quote.quantityToClose = BigInt.zero()
+			quote.closePrice = BigInt.zero()
+		}
 		quote.save()
 		setEventTimestampAndTransactionHashAndAction(quote, "FillCloseRequest", _event)
 	}
