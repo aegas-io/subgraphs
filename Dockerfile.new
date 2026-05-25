@@ -97,8 +97,9 @@ COPY --from=builder /build/generated ./generated
 COPY --from=builder /build/abis ./abis
 COPY --from=builder /build/perps ./perps
 
-# Copy graft base manifest (pinned to IPFS by deploy.sh so grafting can find it)
+# Copy graft base manifests (pinned to IPFS by deploy.sh so grafting can find them)
 COPY bootstrap-graft-base.yaml ./bootstrap-graft-base.yaml
+COPY bootstrap-graft-base-085-no-config.yaml ./bootstrap-graft-base-085-no-config.yaml
 
 # Copy deployment script
 COPY deploy.sh ./
