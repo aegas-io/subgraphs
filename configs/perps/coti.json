@@ -4,8 +4,19 @@
 		{
 			"address": "0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5",
 			"abi": "symmio",
+			"version": "0_8_5",
+			"startBlock": "7316439",
+			"dependencies": [
+				"feeCollector_1",
+				"symmioMultiAccount_2"
+			]
+		},
+		{
+			"address": "0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5",
+			"abi": "symmio",
 			"version": "0_8_4",
 			"startBlock": "185858",
+			"endBlock": "7316439",
 			"dependencies": [
 				"feeCollector_1",
 				"symmioMultiAccount_2"

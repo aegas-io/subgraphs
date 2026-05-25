@@ -28,6 +28,18 @@ if [ -f "./bootstrap-graft-base.yaml" ]; then
   fi
 fi
 
+EXPECTED_BASE_085_HASH="QmTXZXrMhAgtonWxMNwPmzeHNzKs6DuTrnHm6SN4dUKR8e"
+if [ -f "./bootstrap-graft-base-085-no-config.yaml" ]; then
+  echo "Pinning 0.8.5 graft base manifest to IPFS at ${IPFS_URL}..."
+  PIN_RESULT=$(curl -s -X POST -F "file=@bootstrap-graft-base-085-no-config.yaml" "${IPFS_URL}/api/v0/add?pin=true&cid-version=0&raw-leaves=false")
+  echo "Pin result: $PIN_RESULT"
+  if echo "$PIN_RESULT" | grep -q "$EXPECTED_BASE_085_HASH"; then
+    echo "0.8.5 graft base manifest pinned: $EXPECTED_BASE_085_HASH"
+  else
+    echo "WARNING: pinned hash does not match expected $EXPECTED_BASE_085_HASH"
+  fi
+fi
+
 # Create the subgraph namespace
 echo "Creating subgraph namespace for ${SUBGRAPH_NAME}..."
 graph create --node ${GRAPH_NODE_URL} ${SUBGRAPH_NAME} || true

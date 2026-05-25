@@ -56,13 +56,16 @@ COPY . /build/
 # To graft on this deploy, set GRAFT_BASE + GRAFT_BLOCK below to non-empty
 # values (the running prod deployment's IPFS hash and a block ~200 behind
 # its head). Leave both empty for a normal (non-grafted) build.
-ARG GRAFT_BASE="QmQFesWs3oHrtgN3ocpXk88arbwvFKYz9hAj1BcugRumTH"
-ARG GRAFT_BLOCK="7060814"
-RUN if [ -n "$GRAFT_BASE" ] && [ -n "$GRAFT_BLOCK" ]; then \
+ARG GRAFT_BASE="QmTXZXrMhAgtonWxMNwPmzeHNzKs6DuTrnHm6SN4dUKR8e"
+ARG GRAFT_BLOCK="7412232"
+ARG PRUNE="true"
+RUN PRUNE_FLAG=""; \
+    if [ "$PRUNE" = "true" ]; then PRUNE_FLAG="--prune"; fi; \
+    if [ -n "$GRAFT_BASE" ] && [ -n "$GRAFT_BLOCK" ]; then \
       python3 scripts/manager.py configs/perps/coti.json perps/analytics \
-        --graft-base "$GRAFT_BASE" --graft-block "$GRAFT_BLOCK"; \
+        --graft-base "$GRAFT_BASE" --graft-block "$GRAFT_BLOCK" $PRUNE_FLAG; \
     else \
-      python3 scripts/manager.py configs/perps/coti.json perps/analytics; \
+      python3 scripts/manager.py configs/perps/coti.json perps/analytics $PRUNE_FLAG; \
     fi
 
 ######################################################################

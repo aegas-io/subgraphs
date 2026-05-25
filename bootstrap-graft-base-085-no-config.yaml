@@ -1,0 +1,413 @@
+dataSources:
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmZP2EjvXG3oquyE4Ev71FCZNrvdLxTEHtg2CCBFPyyLFQ
+          name: feeCollector_1
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: >-
+            SymmioStakeholderUpdated(indexed address,indexed
+            address,uint256,uint256)
+          handler: handleSymmioStakeholderUpdated
+      file:
+        /: /ipfs/QmWStK2L2ggB8k1EJEyc5WG4a9PiD7CdX235FGiCwqMydN
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: feeCollector_1
+    network: coti
+    source:
+      abi: feeCollector_1
+      address: '0x80c98e1b606C96eeBEBC1E8e6458C368B155fE16'
+      startBlock: 1130515
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmYxpfNhD3dKJBespETVP9ohW6udrGrriswry2KNN9RUFM
+          name: symmio_0_8_0
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'ExpireQuote(uint8,uint256)'
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmio_0_8_0
+    network: coti
+    source:
+      abi: symmio_0_8_0
+      address: '0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5'
+      endBlock: 185858
+      startBlock: 185858
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmYY5BBg6KT2go6pUwsngV4KytFp11WhXDwurRyPmqzyQY
+          name: symmio_0_8_1
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'SettlePartyALiquidation(address,address[])'
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmio_0_8_1
+    network: coti
+    source:
+      abi: symmio_0_8_1
+      address: '0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5'
+      endBlock: 185858
+      startBlock: 185858
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmRUc9fRBdobjzLD7zM2KiFAmAQMptqGxdrvBKpavZ2W5d
+          name: symmio_0_8_2
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'SettlePartyALiquidation(address,address[],int256[])'
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmio_0_8_2
+    network: coti
+    source:
+      abi: symmio_0_8_2
+      address: '0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5'
+      endBlock: 185858
+      startBlock: 185858
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmZDdNsuXeLBRVd318ofGNF9Q1QBo99domugQU8pvEQ58z
+          name: symmio_0_8_3
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'SettlePartyALiquidation(address,address[],int256[],bytes)'
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmio_0_8_3
+    network: coti
+    source:
+      abi: symmio_0_8_3
+      address: '0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5'
+      endBlock: 185858
+      startBlock: 185858
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmaioaMGs6tey1ApdDhrkmgbFDZE2pbqQqtqeL6CHhUhqv
+          name: symmio_0_8_4
+        - file:
+            /: /ipfs/QmZP2EjvXG3oquyE4Ev71FCZNrvdLxTEHtg2CCBFPyyLFQ
+          name: feeCollector_1
+        - file:
+            /: /ipfs/QmdAQW1NehYREVEmV8piWJVjAdd8hyRBxKj6dJM4TrimdC
+          name: symmioMultiAccount_2
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'SettlePartyALiquidation(address,address[],int256[],bytes)'
+          handler: handleSettlePartyALiquidation
+        - event: 'ExpireQuoteClose(uint8,uint256,uint256)'
+          handler: handleExpireQuoteClose
+        - event: 'LockQuote(address,uint256)'
+          handler: handleLockQuote
+        - event: 'LiquidatePartyA(address,address,uint256,int256,int256,bytes)'
+          handler: handleLiquidatePartyA
+        - event: 'SetSymbolValidationState(uint256,bool,bool)'
+          handler: handleSetSymbolValidationState
+        - event: >-
+            ForceClosePosition(uint256,address,address,uint256,uint256,uint8,uint256)
+          handler: handleForceClosePosition
+        - event: >-
+            LiquidatePendingPositionsPartyA(address,address,uint256[],uint256[],bytes)
+          handler: handleLiquidatePendingPositionsPartyA
+        - event: 'ResolveLiquidationDispute(address,address[],int256[],bool,bytes)'
+          handler: handleResolveLiquidationDispute
+        - event: 'DeallocatePartyA(address,uint256,uint256)'
+          handler: handleDeallocatePartyA
+        - event: 'SetSymbolFundingState(uint256,uint256,uint256)'
+          handler: handleSetSymbolFundingState
+        - event: 'AcceptCancelRequest(uint256,uint8)'
+          handler: handleAcceptCancelRequest
+        - event: 'AllocatePartyA(address,uint256,uint256)'
+          handler: handleAllocatePartyA
+        - event: >-
+            DeferredLiquidatePartyA(address,address,uint256,int256,int256,bytes,uint256,uint256,uint256)
+          handler: handleDeferredLiquidatePartyA
+        - event: 'RequestToCancelCloseRequest(address,address,uint256,uint8,uint256)'
+          handler: handleRequestToCancelCloseRequest
+        - event: 'AllocateForPartyB(address,address,uint256,uint256)'
+          handler: handleAllocateForPartyB
+        - event: 'FullyLiquidatedPartyA(address,bytes)'
+          handler: handleFullyLiquidatedPartyA
+        - event: 'LiquidationDisputed(address,bytes)'
+          handler: handleLiquidationDisputed
+        - event: 'ExpireQuoteOpen(uint8,uint256)'
+          handler: handleExpireQuoteOpen
+        - event: >-
+            AddSymbol(uint256,string,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleAddSymbol
+        - event: 'BalanceChangePartyA(indexed address,uint256,uint8)'
+          handler: handleBalanceChangePartyA
+        - event: >-
+            LiquidatePositionsPartyB(address,address,address,uint256[],uint256[],uint256[])
+          handler: handleLiquidatePositionsPartyB
+        - event: 'UnlockQuote(address,uint256,uint8)'
+          handler: handleUnlockQuote
+        - event: >-
+            EmergencyClosePosition(uint256,address,address,uint256,uint256,uint8,uint256)
+          handler: handleEmergencyClosePosition
+        - event: SetCollateral(address)
+          handler: handleSetCollateral
+        - event: 'RoleRevoked(bytes32,address)'
+          handler: handleRoleRevoked
+        - event: 'BalanceChangePartyB(indexed address,indexed address,uint256,uint8)'
+          handler: handleBalanceChangePartyB
+        - event: >-
+            SettleUpnl((uint256,uint256,uint8)[],uint256[],address,uint256,uint256[])
+          handler: handleSettleUpnl
+        - event: >-
+            SendQuote(address,uint256,address[],uint256,uint8,uint8,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleSendQuote
+        - event: 'Withdraw(address,address,uint256)'
+          handler: handleWithdraw
+        - event: >-
+            RequestToClosePosition(address,address,uint256,uint256,uint256,uint8,uint256,uint8,uint256)
+          handler: handleRequestToClosePosition
+        - event: 'ForceCancelQuote(uint256,uint8)'
+          handler: handleForceCancelQuote
+        - event: 'AcceptCancelCloseRequest(uint256,uint8,uint256)'
+          handler: handleAcceptCancelCloseRequest
+        - event: 'RoleGranted(bytes32,address)'
+          handler: handleRoleGranted
+        - event: 'SetSymbolTradingFee(uint256,uint256,uint256)'
+          handler: handleSetSymbolTradingFee
+        - event: 'ChargeFundingRate(address,address,uint256[],int256[])'
+          handler: handleChargeFundingRate
+        - event: 'LiquidatePartyB(address,address,address,uint256,int256)'
+          handler: handleLiquidatePartyB
+        - event: 'ForceCancelCloseRequest(uint256,uint8,uint256)'
+          handler: handleForceCancelCloseRequest
+        - event: 'RequestToCancelQuote(address,address,uint8,uint256)'
+          handler: handleRequestToCancelQuote
+        - event: 'OpenPosition(uint256,address,address,uint256,uint256)'
+          handler: handleOpenPosition
+        - event: AddBridge(address)
+          handler: handleAddBridge
+        - event: 'DeallocateForPartyB(address,address,uint256,uint256)'
+          handler: handleDeallocateForPartyB
+        - event: 'SetSymbolsPrices(address,address,uint256[],uint256[],bytes)'
+          handler: handleSetSymbolsPrices
+        - event: >-
+            FillCloseRequest(uint256,address,address,uint256,uint256,uint8,uint256)
+          handler: handleFillCloseRequest
+        - event: >-
+            LiquidatePositionsPartyA(address,address,uint256[],uint256[],uint256[],bytes)
+          handler: handleLiquidatePositionsPartyA
+        - event: 'Deposit(address,address,uint256)'
+          handler: handleDeposit
+        - event: RegisterPartyB(address)
+          handler: handleRegisterPartyB
+        - event: 'SetFeeCollector(address,address,address)'
+          handler: handleSetFeeCollector
+        - event: 'TransferToBridge(address,uint256,address,uint256)'
+          handler: handleTransferToBridge
+      file:
+        /: /ipfs/QmeTFZ17pRJf9vSv3j6YmGeaupgBKdca4yvzYGhDUNoTnB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmio_0_8_4
+    network: coti
+    source:
+      abi: symmio_0_8_4
+      address: '0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5'
+      startBlock: 185858
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmbsuGB2KeFrF4Ry3xFYztwBfF72Df3Gy8eL646MhqFMwA
+          name: symmio_0_8_5
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: >-
+            ForceClosePartyBInsolvent(uint256,address,address,uint256,uint256,int256,int256)
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmio_0_8_5
+    network: coti
+    source:
+      abi: symmio_0_8_5
+      address: '0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5'
+      endBlock: 185858
+      startBlock: 185858
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmWyvJPZ3fmS9SRHDxUHNBCKtrdMW1zKkDf3EQUavmwdT4
+          name: symmioMultiAccount_1
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'EditAccountName(address,address,string)'
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmioMultiAccount_1
+    network: coti
+    source:
+      abi: symmioMultiAccount_1
+      address: '0xbF318724218cED9A3ff7CfC642c71a0CA1952b0F'
+      endBlock: 639223
+      startBlock: 639223
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmdAQW1NehYREVEmV8piWJVjAdd8hyRBxKj6dJM4TrimdC
+          name: symmioMultiAccount_2
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'EditAccountName(address,address,string)'
+          handler: handleEditAccountName
+        - event: 'RoleGranted(indexed bytes32,indexed address,indexed address)'
+          handler: handleRoleGranted
+        - event: 'AddAccount(address,address,string)'
+          handler: handleAddAccount
+        - event: 'RoleRevoked(indexed bytes32,indexed address,indexed address)'
+          handler: handleRoleRevoked
+      file:
+        /: /ipfs/QmX4TL3aPzq7B3kxuS6qZtKoBtVj9yxdxebyCGqwsRPXCv
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmioMultiAccount_2
+    network: coti
+    source:
+      abi: symmioMultiAccount_2
+      address: '0xbF318724218cED9A3ff7CfC642c71a0CA1952b0F'
+      startBlock: 639223
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmZ1uqFHpRiiH6kHsHkE4rgiyRa7vrURFNHHtJ8irQHQ41
+          name: symmioMultiAccount_3
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'EditAccountName(address,address,string)'
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: symmioMultiAccount_3
+    network: coti
+    source:
+      abi: symmioMultiAccount_3
+      address: '0xbF318724218cED9A3ff7CfC642c71a0CA1952b0F'
+      endBlock: 639223
+      startBlock: 639223
+  - kind: ethereum/contract
+    mapping:
+      abis:
+        - file:
+            /: /ipfs/QmPRo7w3TDQBkGeoKAgwTJJiS2prn58GN46qR8KAKgsHiU
+          name: accountLayer_1
+      apiVersion: 0.0.6
+      entities:
+        - Account
+      eventHandlers:
+        - event: 'RegistrationRejected(indexed address,indexed address)'
+          handler: handleIgnoredEvent
+      file:
+        /: /ipfs/QmRCnBjsRv3rMVCZz5LYK5diWTWRVncTaLTgcsppTxffLB
+      kind: ethereum/events
+      language: wasm/assemblyscript
+    name: accountLayer_1
+    network: coti
+    source:
+      abi: accountLayer_1
+      address: '0x2Ecc7da3Cc98d341F987C85c3D9FC198570838B5'
+      endBlock: 1130515
+      startBlock: 1130515
+description: perps/analytics Subgraph of SYMMIO
+features:
+  - grafting
+graft:
+  base: QmQFesWs3oHrtgN3ocpXk88arbwvFKYz9hAj1BcugRumTH
+  block: 7060814
+indexerHints:
+  prune: never
+schema:
+  file:
+    /: /ipfs/QmQE2GDbiVK3QeEVRUF53YKXZALtDAVrm12bfonxEdVE7R
+specVersion: 1.2.0
