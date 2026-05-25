@@ -451,7 +451,13 @@ def get_events_with_signatures(needed_events: Set[str], contract: Contract) -> L
     return events
 
 
-def prepare_module(config: Config, target_module: str, graft_base: Optional[str] = None, graft_block: Optional[int] = None):
+def prepare_module(
+    config: Config,
+    target_module: str,
+    graft_base: Optional[str] = None,
+    graft_block: Optional[int] = None,
+    prune: bool = False,
+):
     target_config = {}
     if os.path.exists(os.path.join(target_module, "subgraph_config.json")):
         with open(os.path.join(target_module, "subgraph_config.json"), "r") as target_config_file:
@@ -540,7 +546,7 @@ def prepare_module(config: Config, target_module: str, graft_base: Optional[str]
         "specVersion": "1.2.0",
         "description": f"{target_module} Subgraph of SYMMIO",
         "schema": {"file": "./schema.graphql"},
-        "indexerHints": {"prune": "never"},
+        "indexerHints": {"prune": "auto" if prune else "never"},
         "dataSources": [],
     }
     contract_indexes = defaultdict(int)
@@ -815,6 +821,11 @@ def main():
     parser.add_argument("--provider", choices=["goldsky", "0xgraph"], default="goldsky", help="Deployment provider (default: goldsky)")
     parser.add_argument("--graft-base", type=str, help="Deployment ID (Qm...) of base subgraph to graft from")
     parser.add_argument("--graft-block", type=int, help="Block number at which to graft from the base subgraph")
+    parser.add_argument(
+        "--prune",
+        action="store_true",
+        help="Enable history pruning (indexerHints.prune: auto). Without this flag, history is retained forever (prune: never).",
+    )
 
     args = parser.parse_args()
     if not os.path.exists(args.config_file):
@@ -873,7 +884,7 @@ def main():
         if (args.graft_base is None) != (args.graft_block is None):
             error("--graft-base and --graft-block must be provided together")
             sys.exit(1)
-        prepare_module(config, args.module_name, args.graft_base, args.graft_block)
+        prepare_module(config, args.module_name, args.graft_base, args.graft_block, prune=args.prune)
         generate_sync_meta_ts(args.module_name)
         success("Module prepared")
 
